@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leslie Joel Coyago - Portafolio</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --bg-color: #f8f9fa;
+            --text-color: #333;
+            --card-bg: #ffffff;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 4rem 2rem;
+            border-bottom: 5px solid var(--secondary-color);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+
+        header h2 {
+            margin: 10px 0 0;
+            font-weight: 300;
+            color: #bdc3c7;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        section {
+            margin-bottom: 3rem;
+        }
+
+        h3 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+
+        /* Tarjetas de Proyectos y Educación */
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h4 {
+            margin-top: 0;
+            color: var(--secondary-color);
+            font-size: 1.3rem;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .tag {
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            background-color: var(--primary-color);
+            color: white;
+            margin-top: 2rem;
+        }
+
+        footer a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            margin: 0 10px;
+            font-weight: bold;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive Grid for Projects */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .projects-grid .card {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Leslie Joel Coyago</h1>
+        <h2>Físico e Ingeniero de Machine Learning</h2>
+        <p>Especializado en plasmas, sistemas complejos y desarrollo de software aplicado.</p>
+    </header>
+
+    <div class="container">
+        
+        <section id="educacion">
+            <h3>Formación Académica e Investigación</h3>
+            
+            <div class="card">
+                <h4>Licenciatura en Física</h4>
+                <p><strong>Escuela Politécnica Nacional, Ecuador</strong> | 2019 - 2026</p>
+                <p>Especialización en plasma y sistemas complejos.</p>
+                
+                <h5>Tesis e Investigación Principal:</h5>
+                <p>Desarrollo y despliegue de modelos de Machine Learning ensamblados (Random Forest, Gradient Boosting) para predecir la concentración de cadmio en polvo de cacao, mejorando la precisión para el control de seguridad alimentaria.</p>
+                <p>El proyecto involucró el análisis de datos espectroscópicos mediante Python y el manejo de conjuntos de datos con más de 1,000 muestras para extraer patrones significativos y reducir el ruido.</p>
+                <div class="tags">
+                    <span class="tag">LIBS</span>
+                    <span class="tag">Python</span>
+                    <span class="tag">Pandas</span>
+                    <span class="tag">Scikit-learn</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="proyectos">
+            <h3>Proyectos Destacados</h3>
+            
+            <div class="projects-grid">
+                
+                <div class="card">
+                    <h4>Agente Entrevistador con IA</h4>
+                    <p>Desarrollo de un agente entrevistador impulsado por LLMs para evaluaciones estructuradas de candidatos. Se diseñaron métricas de evaluación para asegurar confiabilidad y consistencia, y se optimizaron flujos de datos en PostgreSQL para escalar los registros de entrevistas.</p>
+                    <div class="tags">
+                        <span class="tag">Gemini API</span>
+                        <span class="tag">ChatGPT API</span>
+                        <span class="tag">FastAPI</span>
+                        <span class="tag">Streamlit</span>
+                        <span class="tag">PostgreSQL</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h4>Modelado de Dinámicas de Segregación</h4>
+                    <p>Desarrollo e implementación de un modelo basado en agentes para simular dinámicas de segregación humana. Se optimizó el rendimiento computacional para simular y manejar eficientemente hasta 100,000 agentes, permitiendo experimentos a gran escala sobre comportamiento social.</p>
+                    <div class="tags">
+                        <span class="tag">Fortran 95</span>
+                        <span class="tag">Sistemas Complejos</span>
+                        <span class="tag">Modelado por Agentes</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h4>Análisis Cuantitativo y Espectroscopía</h4>
+                    <p>Investigación experimental en detección de metales usando Espectroscopía de Plasma Inducido por Láser (LIBS). Se realizó un análisis de plasma frío y aproximaciones de densidad de electrones mediante la ecuación de Saha-Boltzmann, demostrando sensibilidad mejorada.</p>
+                    <div class="tags">
+                        <span class="tag">LIBS</span>
+                        <span class="tag">Pandas</span>
+                        <span class="tag">NumPy</span>
+                        <span class="tag">Matplotlib</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+
+    <footer>
+        <p>Contacto y Redes Profesionales</p>
+        <a href="mailto:joelcoyago12@gmail.com">joelcoyago12@gmail.com</a> | 
+        <a href="https://www.linkedin.com/in/joel-coyago-ab1337274" target="_blank">LinkedIn</a>
+    </footer>
+
+</body>
+</html>
