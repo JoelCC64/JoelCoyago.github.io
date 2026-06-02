@@ -743,6 +743,55 @@
       transform: translateY(0);
     }
 
+    .project-actions {
+      display: flex;
+      gap: 0.8rem;
+      margin-top: 1.2rem;
+    }
+
+    .project-btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--accent);
+      color: var(--black);
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-weight: 500;
+      padding: 0.45rem 1rem;
+      text-decoration: none;
+      transition: all 0.25s;
+    }
+
+    .project-btn-primary:hover {
+      background: #f0e4bd;
+      transform: translateY(-1.5px);
+    }
+
+    .project-btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-weight: 400;
+      padding: 0.45rem 1rem;
+      text-decoration: none;
+      transition: all 0.25s;
+    }
+
+    .project-btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-1.5px);
+    }
+
     /* ─── RESPONSIVE ─── */
     @media (max-width: 900px) {
       #hero { grid-template-columns: 1fr; padding: 6rem 1.5rem 4rem; }
@@ -991,15 +1040,19 @@
       <div class="project-card reveal">
         <div class="project-number">03</div>
         <div class="project-content">
-          <h4>AI Interviewer Agent</h4>
-          <p>Development of an LLM-powered interviewer agent for structured candidate evaluation. Designed evaluation metrics to ensure reliability and consistency, built ETL pipelines with SQL and Pandas, and optimized PostgreSQL data flows to scale the interview record system.</p>
+          <h4>AI Recruitment Interviewer (ARI)</h4>
+          <p>Automated recruitment platform designed to screen candidates via interactive voice-to-voice interviews. Powered by OpenAI Realtime WebSockets streaming for conversational latency and Google Gemini for real-time response grading (0-10) against technical rubrics. Relational histories are managed in PostgreSQL, and recruiters review transcripts and analytics via a Streamlit dashboard.</p>
           <div class="project-tags">
+            <span class="project-tag accent">OpenAI Realtime</span>
             <span class="project-tag accent">Gemini API</span>
-            <span class="project-tag accent">ChatGPT API</span>
             <span class="project-tag blue">FastAPI</span>
             <span class="project-tag">Streamlit</span>
             <span class="project-tag">PostgreSQL</span>
-            <span class="project-tag">Python</span>
+            <span class="project-tag">LangGraph</span>
+          </div>
+          <div class="project-actions">
+            <a href="./projects/ai-interview-agent.html" class="project-btn-primary">Case Study →</a>
+            <a href="https://github.com/JoelCC64/AI-Interview-Agent" target="_blank" class="project-btn-outline">GitHub Repo</a>
           </div>
         </div>
         <div class="project-year">2025</div>
@@ -1007,6 +1060,47 @@
 
       <div class="project-card reveal">
         <div class="project-number">04</div>
+        <div class="project-content">
+          <h4>Multimodal Product Classification</h4>
+          <p>Deep learning classification pipeline categorizing e-commerce listings into granular taxonomies. Fuses textual metadata (384D semantic embeddings via MiniLM Transformer) and catalog images (2048D feature vectors via ResNet50/ConvNeXt) in an early-fusion concatenation layer, training a custom Multi-Layer Perceptron (MLP) with Batch Normalization and Dropout regularization.</p>
+          <div class="project-tags">
+            <span class="project-tag accent">TensorFlow</span>
+            <span class="project-tag accent">Keras</span>
+            <span class="project-tag blue">Sentence-Transformers</span>
+            <span class="project-tag">Early Fusion</span>
+            <span class="project-tag">Pytest</span>
+          </div>
+          <div class="project-actions">
+            <a href="./projects/multimodal-classification.html" class="project-btn-primary">Case Study →</a>
+            <a href="https://github.com/JoelCC64/Multimodal-Image-Classification" target="_blank" class="project-btn-outline">GitHub Repo</a>
+          </div>
+        </div>
+        <div class="project-year">2026</div>
+      </div>
+
+      <div class="project-card reveal">
+        <div class="project-number">05</div>
+        <div class="project-content">
+          <h4>Distributed Image Classifier Infrastructure</h4>
+          <p>Production-ready containerized microservices architecture built to offload heavy TensorFlow ResNet50 image classifications asynchronously. Decouples a FastAPI REST API gateway from visual inference workers using a Redis task broker, logs credentials and client review ratings in PostgreSQL (JWT secured), and stress tests scalability using Locust.</p>
+          <div class="project-tags">
+            <span class="project-tag accent">FastAPI</span>
+            <span class="project-tag accent">TensorFlow</span>
+            <span class="project-tag blue">Redis</span>
+            <span class="project-tag">Docker Compose</span>
+            <span class="project-tag">PostgreSQL</span>
+            <span class="project-tag">Locust</span>
+          </div>
+          <div class="project-actions">
+            <a href="./projects/image-recognition-app.html" class="project-btn-primary">Case Study →</a>
+            <a href="https://github.com/JoelCC64/Image-Recognition-App" target="_blank" class="project-btn-outline">GitHub Repo</a>
+          </div>
+        </div>
+        <div class="project-year">2025</div>
+      </div>
+
+      <div class="project-card reveal">
+        <div class="project-number">06</div>
         <div class="project-content">
           <h4>ML Pipelines for Risk Analysis — AnyoneAI</h4>
           <p>Design and execution of end-to-end ETL pipelines using SQL and Pandas for operational metrics analysis. Built and fine-tuned ensemble models including XGBoost and LightGBM to improve accuracy in risk analysis and data-driven decision making.</p>

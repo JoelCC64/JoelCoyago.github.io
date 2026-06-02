@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARI: AI Recruitment Interviewer — Joel Coyago</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --black: #0a0a0a;
+      --off-black: #111112;
+      --surface: #161618;
+      --surface-2: #1e1e21;
+      --border: rgba(255,255,255,0.07);
+      --accent: #e8d5a3;
+      --accent-2: #7fb5c1;
+      --accent-3: #c17f7f;
+      --text: #e8e6e1;
+      --muted: #888880;
+      --serif: 'Playfair Display', Georgia, serif;
+      --mono: 'DM Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 300;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ─── NOISE OVERLAY ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.4;
+    }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--black); }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.4rem 3rem;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+      text-decoration: none;
+    }
+
+    .nav-back {
+      color: var(--muted);
+      text-decoration: none;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-back:hover { color: var(--accent); }
+
+    /* ─── CONTAINER ─── */
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 8rem 2rem 4rem;
+    }
+
+    .header-section {
+      margin-bottom: 4rem;
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .eyebrow::before {
+      content: '';
+      display: block;
+      width: 30px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-family: var(--serif);
+      font-size: clamp(1.1rem, 2vw, 1.6rem);
+      color: var(--accent-2);
+      font-style: italic;
+      margin-bottom: 2rem;
+    }
+
+    /* ─── SPECS GRID ─── */
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 0;
+    }
+
+    .spec-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.2rem 1.5rem;
+      transition: border-color 0.25s;
+    }
+
+    .spec-item:hover { border-color: rgba(232,213,163,0.3); }
+
+    .spec-label {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .spec-value {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    /* ─── CONTENT BLOCKS ─── */
+    .content-block {
+      margin-bottom: 4rem;
+    }
+
+    .content-block h2 {
+      font-family: var(--serif);
+      font-size: 1.8rem;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+
+    .content-block p {
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.8;
+      margin-bottom: 1.5rem;
+    }
+
+    .content-block p strong {
+      color: var(--text);
+    }
+
+    /* ─── DIAGRAM BOX ─── */
+    .diagram-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      margin: 2.5rem 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .diagram-caption {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 1rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ─── LISTS & COLUMNS ─── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-top: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+
+    .feature-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      border-left: 2px solid var(--accent);
+    }
+
+    .feature-card h3 {
+      font-family: var(--serif);
+      font-size: 1.15rem;
+      color: var(--accent);
+      margin-bottom: 0.6rem;
+    }
+
+    .feature-card p {
+      font-size: 0.9rem;
+      margin-bottom: 0;
+    }
+
+    .db-schema-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .table-header {
+      background: var(--surface-2);
+      padding: 0.8rem 1.2rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--accent-2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .table-fields {
+      padding: 1rem 1.2rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .table-field {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .field-name {
+      color: var(--text);
+    }
+
+    .field-type {
+      color: #999;
+    }
+
+    /* ─── BTNS ─── */
+    .button-group {
+      display: flex;
+      gap: 1.2rem;
+      margin-top: 3rem;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent);
+      color: var(--black);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 500;
+      padding: 0.85rem 1.8rem;
+      text-decoration: none;
+      transition: all 0.25s;
+    }
+
+    .btn-primary:hover {
+      background: #f0e4bd;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 400;
+      padding: 0.85rem 1.8rem;
+      text-decoration: none;
+      transition: all 0.25s;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      padding: 2.5rem 3rem;
+      background: var(--black);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6rem;
+    }
+
+    footer p {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 1.2rem 1.5rem; }
+      .container { padding-top: 6rem; }
+      footer { flex-direction: column; gap: 0.5rem; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="../index.html">JC</a>
+    <a class="nav-back" href="../index.html">← Back to Portfolio</a>
+  </nav>
+
+  <div class="container">
+    <header class="header-section">
+      <div class="eyebrow">Case Study / AI Engineering</div>
+      <h1>AI Recruitment Interviewer (ARI)</h1>
+      <p class="subtitle">Proof of Concept for Automated Candidate Screening via Voice & Text</p>
+      
+      <div class="button-group">
+        <a href="https://github.com/JoelCC64/AI-Interview-Agent" target="_blank" class="btn-primary">View GitHub Repository ↗</a>
+        <a href="../index.html#proyectos" class="btn-outline">All Projects</a>
+      </div>
+    </header>
+
+    <!-- SPECS GRID -->
+    <div class="specs-grid">
+      <div class="spec-item">
+        <div class="spec-label">Timeline</div>
+        <div class="spec-value">02/2025 — 06/2025</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-label">Role</div>
+        <div class="spec-value">Backend & AI Engineer</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-label">Core Tech</div>
+        <div class="spec-value">FastAPI, Chainlit, OpenAI Realtime, Gemini API</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-label">Database</div>
+        <div class="spec-value">PostgreSQL & SQLAlchemy</div>
+      </div>
+    </div>
+
+    <!-- MAIN DESCRIPTION -->
+    <div class="content-block">
+      <h2>Project Overview</h2>
+      <p>
+        <strong>ARI (AI Recruitment Interviewer)</strong> is a production-inspired automated screening platform. In modern technical recruitment, reviewing hundreds of initial candidate profiles is a significant bottleneck. ARI resolves this by conducting conversational, interactive, voice-to-voice technical screening interviews, scoring answers in real-time, and compiling visual candidate reports for recruiters.
+      </p>
+      <p>
+        The platform uses a hybrid multi-model strategy: leveraging the **OpenAI Realtime API** for low-latency voice-to-voice streaming, and the **Google Gemini API** for structured assessment of transcripts against technical guidelines and expected answers. All data, from candidate responses to final summaries, is stored inside a highly structured PostgreSQL schema.
+      </p>
+    </div>
+
+    <!-- ARCHITECTURE DIAGRAM -->
+    <div class="content-block">
+      <h2>System Architecture</h2>
+      <p>
+        The platform is divided into three distinct modules communicating asynchronously via REST APIs and WebSockets, sharing persistent state in a central PostgreSQL instance:
+      </p>
+
+      <div class="diagram-box">
+        <svg viewBox="0 0 800 380" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" style="background:#161618; border-radius:4px; max-width:800px;">
+          <!-- Defs for markers and filters -->
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#e8d5a3"/>
+            </marker>
+            <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#7fb5c1"/>
+            </marker>
+            <filter id="glow-rect">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+
+          <!-- Grid Lines (Subtle background) -->
+          <g stroke="rgba(255,255,255,0.015)" stroke-width="1">
+            <path d="M 0,50 L 800,50 M 0,100 L 800,100 M 0,150 L 800,150 M 0,200 L 800,200 M 0,250 L 800,250 M 0,300 L 800,300 M 0,350 L 800,350" />
+            <path d="M 100,0 L 100,380 M 200,0 L 200,380 M 300,0 L 300,380 M 400,0 L 400,380 M 500,0 L 500,380 M 600,0 L 600,380 M 700,0 L 700,380" />
+          </g>
+
+          <!-- Candidate Component -->
+          <rect x="30" y="140" width="130" height="70" rx="3" fill="#1e1e21" stroke="#e8d5a3" stroke-width="1" />
+          <text x="95" y="172" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12" font-weight="bold" fill="#e8e6e1">Candidate</text>
+          <text x="95" y="190" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#888880">Audio / Text UI</text>
+
+          <!-- ari-agent-chain Component -->
+          <rect x="230" y="140" width="160" height="70" rx="3" fill="#1e1e21" stroke="#7fb5c1" stroke-width="1" />
+          <text x="310" y="167" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12" font-weight="bold" fill="#e8e6e1">ari-agent-chain</text>
+          <text x="310" y="183" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#7fb5c1">Chainlit & LangGraph</text>
+          <text x="310" y="197" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#888880">OpenAI Realtime WebSockets</text>
+
+          <!-- ari-eval-api Component -->
+          <rect x="470" y="50" width="160" height="70" rx="3" fill="#1e1e21" stroke="#7fb5c1" stroke-width="1" />
+          <text x="550" y="77" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12" font-weight="bold" fill="#e8e6e1">ari-eval-api</text>
+          <text x="550" y="93" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#7fb5c1">FastAPI Backend</text>
+          <text x="550" y="107" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#888880">REST API / Evaluation</text>
+
+          <!-- Recruiter Dashboard -->
+          <rect x="230" y="270" width="160" height="70" rx="3" fill="#1e1e21" stroke="#7fb5c1" stroke-width="1" />
+          <text x="310" y="297" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12" font-weight="bold" fill="#e8e6e1">ari-dashboard</text>
+          <text x="310" y="313" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#7fb5c1">Streamlit Application</text>
+          <text x="310" y="327" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#888880">Recruiter UI / Plotly</text>
+
+          <!-- PostgreSQL database -->
+          <path d="M 510,250 C 510,240 590,240 590,250 L 590,310 C 590,320 510,320 510,310 Z" fill="#1e1e21" stroke="#e8d5a3" stroke-width="1" />
+          <ellipse cx="550" cy="250" rx="40" ry="8" fill="#1e1e21" stroke="#e8d5a3" stroke-width="1" />
+          <text x="550" y="277" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12" font-weight="bold" fill="#e8e6e1">PostgreSQL</text>
+          <text x="550" y="292" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#888880">Database</text>
+
+          <!-- Google Gemini external block -->
+          <rect x="690" y="140" width="90" height="70" rx="3" fill="#111112" stroke="#c17f7f" stroke-width="1" stroke-dasharray="3,3" />
+          <text x="735" y="172" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="11" font-weight="bold" fill="#e8e6e1">Gemini API</text>
+          <text x="735" y="190" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#c17f7f">External LLM</text>
+
+          <!-- Lines and labels -->
+          <!-- Candidate <--> ari-agent-chain (WebSockets) -->
+          <path d="M 160,175 L 222,175" stroke="#7fb5c1" stroke-width="1.5" marker-end="url(#arrow-blue)" marker-start="url(#arrow-blue)" stroke-dasharray="2,2" />
+          <text x="195" y="165" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#7fb5c1">Realtime Audio</text>
+
+          <!-- ari-agent-chain --> ari-eval-api -->
+          <path d="M 350,140 L 350,85 L 462,85" stroke="#7fb5c1" stroke-width="1" marker-end="url(#arrow-blue)" fill="none" />
+          <text x="410" y="77" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#7fb5c1">HTTP POST Answer</text>
+
+          <!-- ari-eval-api --> Gemini API -->
+          <path d="M 630,85 L 735,85 L 735,132" stroke="#e8d5a3" stroke-width="1" marker-end="url(#arrow)" fill="none" />
+          <text x="682" y="77" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#e8d5a3">Evaluation Prompt</text>
+          <path d="M 720,140 L 720,105 L 630,105" stroke="#e8d5a3" stroke-width="0.8" marker-end="url(#arrow)" fill="none" />
+          <text x="677" y="117" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#e8d5a3">Score & Feedback JSON</text>
+
+          <!-- ari-eval-api --> Database -->
+          <path d="M 550,120 L 550,232" stroke="#e8d5a3" stroke-width="1" marker-end="url(#arrow)" />
+          <text x="575" y="180" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#e8d5a3">Save Scores</text>
+
+          <!-- ari-agent-chain <--> Database (Fetch questions) -->
+          <path d="M 390,175 L 430,175 L 430,280 L 502,280" stroke="#7fb5c1" stroke-width="1" marker-end="url(#arrow-blue)" marker-start="url(#arrow-blue)" fill="none" />
+          <text x="445" y="270" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#7fb5c1">Job Data / Qs</text>
+
+          <!-- Recruiter Dashboard <--> Database -->
+          <path d="M 390,305 L 502,305" stroke="#7fb5c1" stroke-width="1" marker-end="url(#arrow-blue)" marker-start="url(#arrow-blue)" />
+          <text x="445" y="320" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#7fb5c1">Read Metrics</text>
+
+          <!-- Recruiter Dashboard --> Gemini (Request summary) -->
+          <path d="M 310,340 L 310,360 L 755,360 L 755,218" stroke="#e8d5a3" stroke-width="0.8" marker-end="url(#arrow)" fill="none" />
+          <text x="532" y="353" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#e8d5a3">Request Final Executive Summary</text>
+        </svg>
+      </div>
+      <div class="diagram-caption">Figure 1: Automated system design showing decoupled voice capture and evaluation flows.</div>
+    </div>
+
+    <!-- CORE MODULES -->
+    <div class="content-block">
+      <h2>Module Explanations</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>1. Interview Orchestration</h3>
+          <p>
+            The **`ari-agent-chain`** package handles real-time audio chunking, WebSockets streaming, and the front-facing client conversation. It utilizes **Chainlit** for UI rendering and **LangGraph** to construct the conversation's state machine, feeding voice data chunks directly to the OpenAI Realtime WebSockets API.
+          </p>
+        </div>
+        <div class="feature-card">
+          <h3>2. Asynchronous Evaluation API</h3>
+          <p>
+            The **`ari-eval-api`** is an asynchronous REST microservice built with **FastAPI**. When a user finishes answering a question, their audio response transcript is pushed here. The service calls **Google Gemini** using structured prompts (containing the expected response guidelines) to evaluate answers on a 0-10 scale and output formatted JSON feedback.
+          </p>
+        </div>
+        <div class="feature-card">
+          <h3>3. Recruiter Dashboard</h3>
+          <p>
+            The **`ari-dashboard`** is a **Streamlit** dashboard tailored for HR managers. It pulls candidates' transcripts, raw answer recordings, and individual question scores directly from the PostgreSQL instance. It calls Gemini to generate a final executive summary report of the candidate, helping recruiters make data-driven hiring decisions.
+          </p>
+        </div>
+        <div class="feature-card">
+          <h3>4. Relational Storage Layer</h3>
+          <p>
+            Powered by **PostgreSQL** using **SQLAlchemy** ORM. It persists relational models for job roles, dynamic question pools, candidate identifiers, session timestamps, and highly granular evaluations (transcripts, raw grades, weighted scores, and specific LLM feedback).
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- INTERVIEW WORKFLOW -->
+    <div class="content-block">
+      <h2>Detailed Sequence Flow</h2>
+      <p>
+        Below is the transactional sequence of events that takes place during a typical candidate evaluation lifecycle:
+      </p>
+
+      <div class="diagram-box">
+        <svg viewBox="0 0 800 390" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" style="background:#161618; border-radius:4px; max-width:800px;">
+          <!-- Wires for lifelines -->
+          <g stroke="rgba(255,255,255,0.06)" stroke-width="1">
+            <!-- Verticals -->
+            <line x1="80" y1="50" x2="80" y2="340" stroke-dasharray="2,2"/>
+            <line x1="250" y1="50" x2="250" y2="340" stroke-dasharray="2,2"/>
+            <line x1="420" y1="50" x2="420" y2="340" stroke-dasharray="2,2"/>
+            <line x1="590" y1="50" x2="590" y2="340" stroke-dasharray="2,2"/>
+            <line x1="720" y1="50" x2="720" y2="340" stroke-dasharray="2,2"/>
+          </g>
+
+          <!-- Actor headers -->
+          <rect x="30" y="20" width="100" height="30" rx="2" fill="#1e1e21" stroke="rgba(255,255,255,0.15)" />
+          <text x="80" y="39" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="10" font-weight="bold" fill="#e8e6e1">Candidate</text>
+
+          <rect x="200" y="20" width="100" height="30" rx="2" fill="#1e1e21" stroke="#7fb5c1" />
+          <text x="250" y="39" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="10" font-weight="bold" fill="#e8e6e1">ari-agent-chain</text>
+
+          <rect x="370" y="20" width="100" height="30" rx="2" fill="#1e1e21" stroke="#7fb5c1" />
+          <text x="420" y="39" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="10" font-weight="bold" fill="#e8e6e1">ari-eval-api</text>
+
+          <rect x="540" y="20" width="100" height="30" rx="2" fill="#1e1e21" stroke="#e8d5a3" />
+          <text x="590" y="39" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="10" font-weight="bold" fill="#e8e6e1">PostgreSQL</text>
+
+          <rect x="670" y="20" width="100" height="30" rx="2" fill="#1e1e21" stroke="#c17f7f" />
+          <text x="720" y="39" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="10" font-weight="bold" fill="#e8e6e1">Gemini API</text>
+
+          <!-- Interaction arrows -->
+          <!-- 1. Start Session -->
+          <path d="M 80,80 L 244,80" stroke="#7fb5c1" stroke-width="1.2" marker-end="url(#arrow-blue)" />
+          <text x="165" y="74" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#7fb5c1">1. Starts session</text>
+
+          <!-- 2. Get questions -->
+          <path d="M 250,105 L 584,105" stroke="#7fb5c1" stroke-width="1" marker-end="url(#arrow-blue)" />
+          <text x="420" y="99" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#7fb5c1">2. Fetch Questions</text>
+          <path d="M 590,125 L 256,125" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" marker-end="url(#arrow-blue)" stroke-dasharray="2,2" />
+          <text x="420" y="120" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#888880">3. Return Question list</text>
+
+          <!-- 3. Conversational QA -->
+          <path d="M 250,155 L 86,155" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" marker-end="url(#arrow-blue)" />
+          <text x="165" y="149" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#888880">4. Play Question 1</text>
+          
+          <path d="M 80,185 L 244,185" stroke="#e8d5a3" stroke-width="1.2" marker-end="url(#arrow)" />
+          <text x="165" y="179" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#e8d5a3">5. Speak Response (Audio)</text>
+
+          <!-- 4. Evaluate -->
+          <path d="M 250,215 L 414,215" stroke="#7fb5c1" stroke-width="1.2" marker-end="url(#arrow-blue)" />
+          <text x="335" y="209" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#7fb5c1">6. Post Answer Transcript</text>
+
+          <path d="M 420,245 L 714,245" stroke="#e8d5a3" stroke-width="1.2" marker-end="url(#arrow)" />
+          <text x="570" y="239" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#e8d5a3">7. Prompt Evaluation</text>
+          
+          <path d="M 720,275 L 426,275" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" marker-end="url(#arrow-blue)" stroke-dasharray="2,2" />
+          <text x="570" y="269" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#888880">8. Score & Detailed Feedback</text>
+
+          <!-- 5. Save -->
+          <path d="M 420,305 L 584,305" stroke="#e8d5a3" stroke-width="1.2" marker-end="url(#arrow)" />
+          <text x="502" y="299" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#e8d5a3">9. Persist Evaluations</text>
+        </svg>
+      </div>
+      <div class="diagram-caption">Figure 2: Sequence flow of a single candidate question-answering evaluation loop.</div>
+    </div>
+
+    <!-- DATABASE SCHEMA -->
+    <div class="content-block">
+      <h2>Relational Database Schema (PostgreSQL)</h2>
+      <p>
+        The persistence schema represents a transactional layout mapping users, roles, jobs, evaluation metrics, and LLM text segments.
+      </p>
+
+      <div class="db-schema-grid">
+        
+        <!-- users table -->
+        <div class="table-card">
+          <div class="table-header">
+            <span>users</span>
+            <span>Table</span>
+          </div>
+          <div class="table-fields">
+            <div class="table-field"><span class="field-name">id (PK)</span><span class="field-type">INT</span></div>
+            <div class="table-field"><span class="field-name">full_name</span><span class="field-type">VARCHAR</span></div>
+            <div class="table-field"><span class="field-name">email</span><span class="field-type">VARCHAR</span></div>
+            <div class="table-field"><span class="field-name">created_at</span><span class="field-type">TIMESTAMP</span></div>
+          </div>
+        </div>
+
+        <!-- job_positions table -->
+        <div class="table-card">
+          <div class="table-header">
+            <span>job_positions</span>
+            <span>Table</span>
+          </div>
+          <div class="table-fields">
+            <div class="table-field"><span class="field-name">id (PK)</span><span class="field-type">INT</span></div>
+            <div class="table-field"><span class="field-name">title</span><span class="field-type">VARCHAR</span></div>
+            <div class="table-field"><span class="field-name">description</span><span class="field-type">TEXT</span></div>
+            <div class="table-field"><span class="field-name">created_at</span><span class="field-type">TIMESTAMP</span></div>
+          </div>
+        </div>
+
+        <!-- questions table -->
+        <div class="table-card">
+          <div class="table-header">
+            <span>questions</span>
+            <span>Table</span>
+          </div>
+          <div class="table-fields">
+            <div class="table-field"><span class="field-name">id (PK)</span><span class="field-type">INT</span></div>
+            <div class="table-field"><span class="field-name">text</span><span class="field-type">TEXT</span></div>
+            <div class="table-field"><span class="field-name">job_position_id (FK)</span><span class="field-type">INT</span></div>
+            <div class="table-field"><span class="field-name">relevance_weight</span><span class="field-type">INT</span></div>
+            <div class="table-field"><span class="field-name">expected_response</span><span class="field-type">TEXT</span></div>
+          </div>
+        </div>
+
+        <!-- interviews table -->
+        <div class="table-card">
+          <div class="table-header">
+            <span>interviews</span>
+            <span>Table</span>
+          </div>
+          <div class="table-fields">
+            <div class="table-field"><span class="field-name">id (PK)</span><span class="field-type">VARCHAR</span></div>
+            <div class="table-field"><span class="field-name">user_id (FK)</span><span class="field-type">INT</span></div>
+            <div class="table-field"><span class="field-name">score_total</span><span class="field-type">DECIMAL</span></div>
+            <div class="table-field"><span class="field-name">final_feedback</span><span class="field-type">TEXT</span></div>
+            <div class="table-field"><span class="field-name">status</span><span class="field-type">VARCHAR</span></div>
+            <div class="table-field"><span class="field-name">created_at</span><span class="field-type">TIMESTAMP</span></div>
+          </div>
+        </div>
+
+        <!-- responses_metadata table -->
+        <div class="table-card">
+          <div class="table-header">
+            <span>responses_metadata</span>
+            <span>Table</span>
+          </div>
+          <div class="table-fields">
+            <div class="table-field"><span class="field-name">id (PK)</span><span class="field-type">INT</span></div>
+            <div class="table-field"><span class="field-name">interview_id (FK)</span><span class="field-type">VARCHAR</span></div>
+            <div class="table-field"><span class="field-name">question_id (FK)</span><span class="field-type">INT</span></div>
+            <div class="table-field"><span class="field-name">answer_text</span><span class="field-type">TEXT</span></div>
+          </div>
+        </div>
+
+        <!-- response_evaluations table -->
+        <div class="table-card">
+          <div class="table-header">
+            <span>response_evaluations</span>
+            <span>Table</span>
+          </div>
+          <div class="table-fields">
+            <div class="table-field"><span class="field-name">id (PK)</span><span class="field-type">INT</span></div>
+            <div class="table-field"><span class="field-name">response_id (FK)</span><span class="field-type">INT</span></div>
+            <div class="table-field"><span class="field-name">score</span><span class="field-type">DECIMAL</span></div>
+            <div class="table-field"><span class="field-name">calc_score</span><span class="field-type">DECIMAL</span></div>
+            <div class="table-field"><span class="field-name">llm_feedback</span><span class="field-type">TEXT</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- KEY HIGHLIGHTS -->
+    <div class="content-block">
+      <h2>Technical Highlights & Review</h2>
+      <p>
+        During local development, I focused heavily on ensuring **robust error handling and testability**:
+      </p>
+      <p>
+        - **Mock Layer Integration**: Set up dependency injection configurations allowing the `ari-eval-api` server to toggle between standard PostgreSQL database pools and a local `mock_client.py` based on environment flags, bypassing DB requirements during unit-test executions.
+        <br/>
+        - **Pydantic Guardrails**: Outlined strict schemas enforcing JSON structure from Gemini calls (handling syntax, out-of-bounds scores, and validating field structures before SQL ingestion).
+        <br/>
+        - **Weighted Relevance Logic**: Created custom SQL queries to multiply grades with relevance variables (`relevance_weight`), ensuring core skills (e.g. databases, concurrency) contribute properly to the total score.
+      </p>
+    </div>
+
+    <div class="button-group" style="justify-content: center;">
+      <a href="../index.html" class="btn-outline">← Back to Main Portfolio</a>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Joel Coyago — Quito, Ecuador · +593 996389269</p>
+    <p>Physicist · Cum Laude · EPN 2025</p>
+  </footer>
+
+</body>
+</html>

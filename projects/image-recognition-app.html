@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Distributed Image Classifier — Joel Coyago</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --black: #0a0a0a;
+      --off-black: #111112;
+      --surface: #161618;
+      --surface-2: #1e1e21;
+      --border: rgba(255,255,255,0.07);
+      --accent: #e8d5a3;
+      --accent-2: #7fb5c1;
+      --accent-3: #c17f7f;
+      --text: #e8e6e1;
+      --muted: #888880;
+      --serif: 'Playfair Display', Georgia, serif;
+      --mono: 'DM Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 300;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ─── NOISE OVERLAY ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.4;
+    }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--black); }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.4rem 3rem;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+      text-decoration: none;
+    }
+
+    .nav-back {
+      color: var(--muted);
+      text-decoration: none;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-back:hover { color: var(--accent); }
+
+    /* ─── CONTAINER ─── */
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 8rem 2rem 4rem;
+    }
+
+    .header-section {
+      margin-bottom: 4rem;
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .eyebrow::before {
+      content: '';
+      display: block;
+      width: 30px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-family: var(--serif);
+      font-size: clamp(1.1rem, 2vw, 1.6rem);
+      color: var(--accent-2);
+      font-style: italic;
+      margin-bottom: 2rem;
+    }
+
+    /* ─── SPECS GRID ─── */
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 0;
+    }
+
+    .spec-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.2rem 1.5rem;
+      transition: border-color 0.25s;
+    }
+
+    .spec-item:hover { border-color: rgba(232,213,163,0.3); }
+
+    .spec-label {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .spec-value {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    /* ─── CONTENT BLOCKS ─── */
+    .content-block {
+      margin-bottom: 4rem;
+    }
+
+    .content-block h2 {
+      font-family: var(--serif);
+      font-size: 1.8rem;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+
+    .content-block p {
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.8;
+      margin-bottom: 1.5rem;
+    }
+
+    .content-block p strong {
+      color: var(--text);
+    }
+
+    /* ─── DIAGRAM BOX ─── */
+    .diagram-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      margin: 2.5rem 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .diagram-caption {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 1rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ─── DOCKER CHIPS ─── */
+    .service-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .service-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      border-radius: 4px;
+    }
+
+    .service-card h3 {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--accent);
+      margin-bottom: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .service-card h3 span {
+      font-family: var(--sans);
+      font-size: 0.65rem;
+      background: rgba(127,181,193,0.1);
+      color: var(--accent-2);
+      border: 1px solid rgba(127,181,193,0.2);
+      padding: 0.1rem 0.4rem;
+      text-transform: uppercase;
+    }
+
+    .service-card p {
+      font-size: 0.88rem;
+      margin-bottom: 0;
+    }
+
+    /* ─── CODE WRAP ─── */
+    .code-wrap {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 1.2rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--text);
+      overflow-x: auto;
+      margin: 1.5rem 0;
+    }
+
+    /* ─── BTNS ─── */
+    .button-group {
+      display: flex;
+      gap: 1.2rem;
+      margin-top: 3rem;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent);
+      color: var(--black);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 500;
+      padding: 0.85rem 1.8rem;
+      text-decoration: none;
+      transition: all 0.25s;
+    }
+
+    .btn-primary:hover {
+      background: #f0e4bd;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 400;
+      padding: 0.85rem 1.8rem;
+      text-decoration: none;
+      transition: all 0.25s;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      padding: 2.5rem 3rem;
+      background: var(--black);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6rem;
+    }
+
+    footer p {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 1.2rem 1.5rem; }
+      .container { padding-top: 6rem; }
+      footer { flex-direction: column; gap: 0.5rem; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="../index.html">JC</a>
+    <a class="nav-back" href="../index.html">← Back to Portfolio</a>
+  </nav>
+
+  <div class="container">
+    <header class="header-section">
+      <div class="eyebrow">Case Study / Software Architecture</div>
+      <h1>Distributed Image Classifier</h1>
+      <p class="subtitle">Decoupled Microservices Infrastructure for High-Throughput TensorFlow Inference</p>
+      
+      <div class="button-group">
+        <a href="https://github.com/JoelCC64/Image-Recognition-App" target="_blank" class="btn-primary">View GitHub Repository ↗</a>
+        <a href="../index.html#proyectos" class="btn-outline">All Projects</a>
+      </div>
+    </header>
+
+    <!-- SPECS GRID -->
+    <div class="specs-grid">
+      <div class="spec-item">
+        <div class="spec-label">Timeline</div>
+        <div class="spec-value">2025</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-label">Role</div>
+        <div class="spec-value">Software & DevOps Engineer</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-label">Infrastructure</div>
+        <div class="spec-value">Docker Compose, Redis, Shared Volumes</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-label">Workload Testing</div>
+        <div class="spec-value">Locust Concurrency Testing</div>
+      </div>
+    </div>
+
+    <!-- MAIN DESCRIPTION -->
+    <div class="content-block">
+      <h2>Project Overview</h2>
+      <p>
+        Executing heavy neural network models (like ResNet50 in TensorFlow) within HTTP request-response cycles can lead to high latency and thread blocking at the API layer. Under high load, this causes timeouts and gateway errors.
+      </p>
+      <p>
+        This project implements a **distributed, microservices-based image classification infrastructure**. By separating the system into decoupled containers, tasks are offloaded asynchronously. An **API Gateway** handles routing and client authentication. The gateway pushes incoming images to a **Redis** message queue. An independent **TensorFlow worker** then processes these jobs in the background, updating prediction results in a **PostgreSQL** database.
+      </p>
+    </div>
+
+    <!-- ARCHITECTURE DIAGRAM -->
+    <div class="content-block">
+      <h2>Microservices Architecture Layout</h2>
+      <p>
+        The five services operate inside an isolated virtual network managed by Docker Compose:
+      </p>
+
+      <div class="diagram-box">
+        <svg viewBox="0 0 800 380" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" style="background:#161618; border-radius:4px; max-width:800px;">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#e8d5a3"/>
+            </marker>
+            <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#7fb5c1"/>
+            </marker>
+          </defs>
+
+          <!-- Outer Box representing Docker Compose -->
+          <rect x="20" y="20" width="760" height="340" rx="6" fill="#111112" stroke="rgba(255,255,255,0.05)" stroke-width="1.5" />
+          <text x="35" y="42" font-family="'DM Mono', monospace" font-size="9" fill="rgba(255,255,255,0.3)" letter-spacing="1">DOCKER COMPOSE NETWORK (shared_network)</text>
+
+          <!-- Web UI -->
+          <rect x="50" y="140" width="130" height="70" rx="3" fill="#1e1e21" stroke="#7fb5c1" stroke-width="1" />
+          <text x="115" y="172" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="11" font-weight="bold" fill="#e8e6e1">Web Dashboard</text>
+          <text x="115" y="190" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#7fb5c1">Streamlit UI</text>
+
+          <!-- API Gateway -->
+          <rect x="240" y="140" width="140" height="70" rx="3" fill="#1e1e21" stroke="#7fb5c1" stroke-width="1" />
+          <text x="310" y="172" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="11" font-weight="bold" fill="#e8e6e1">API Gateway</text>
+          <text x="310" y="190" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#7fb5c1">FastAPI / JWT Auth</text>
+
+          <!-- Redis Broker -->
+          <rect x="440" y="70" width="120" height="70" rx="3" fill="#1e1e21" stroke="#e8d5a3" stroke-width="1" />
+          <text x="500" y="102" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="11" font-weight="bold" fill="#e8e6e1">Broker Service</text>
+          <text x="500" y="120" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#e8d5a3">Redis Task Queue</text>
+
+          <!-- TensorFlow Worker -->
+          <rect x="620" y="140" width="130" height="70" rx="3" fill="#1e1e21" stroke="#7fb5c1" stroke-width="1" />
+          <text x="685" y="172" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="11" font-weight="bold" fill="#e8e6e1">Model Worker</text>
+          <text x="685" y="190" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#7fb5c1">TensorFlow / ResNet50</text>
+
+          <!-- PostgreSQL -->
+          <rect x="440" y="210" width="120" height="70" rx="3" fill="#1e1e21" stroke="#e8d5a3" stroke-width="1" />
+          <text x="500" y="242" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="11" font-weight="bold" fill="#e8e6e1">Data Store</text>
+          <text x="500" y="260" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#e8d5a3">PostgreSQL</text>
+
+          <!-- Arrows & Connections -->
+          <!-- Web UI <--> API Gateway -->
+          <path d="M 180,175 L 232,175" stroke="#7fb5c1" stroke-width="1" marker-end="url(#arrow-blue)" marker-start="url(#arrow-blue)" />
+          <text x="210" y="165" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#7fb5c1">HTTP / JWT</text>
+
+          <!-- API Gateway --> Redis Broker -->
+          <path d="M 310,140 L 310,105 L 432,105" stroke="#7fb5c1" stroke-width="1" marker-end="url(#arrow-blue)" fill="none" />
+          <text x="370" y="97" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#7fb5c1">Enqueue Task</text>
+
+          <!-- Redis Broker --> Model Worker -->
+          <path d="M 560,105 L 685,105 L 685,132" stroke="#e8d5a3" stroke-width="1" marker-end="url(#arrow)" fill="none" />
+          <text x="622" y="97" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#e8d5a3">Dequeue Task</text>
+
+          <!-- Model Worker --> PostgreSQL -->
+          <path d="M 685,210 L 685,245 L 568,245" stroke="#7fb5c1" stroke-width="1" marker-end="url(#arrow-blue)" fill="none" />
+          <text x="626" y="237" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#7fb5c1">Save Prediction</text>
+
+          <!-- API Gateway <--> PostgreSQL -->
+          <path d="M 310,210 L 310,245 L 432,245" stroke="#7fb5c1" stroke-width="1" marker-end="url(#arrow-blue)" marker-start="url(#arrow-blue)" fill="none" />
+          <text x="370" y="237" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#7fb5c1">Validate User / Logs</text>
+
+          <!-- Shared Volumes Overlay note -->
+          <path d="M 345,210 L 345,320 L 650,320 L 650,210" stroke="rgba(255,255,255,0.2)" stroke-width="0.8" fill="none" stroke-dasharray="3,3" />
+          <text x="497" y="312" text-anchor="middle" font-family="'DM Mono', monospace" font-size="7" fill="#888">Shared Media Mount (Images Repository)</text>
+        </svg>
+      </div>
+      <div class="diagram-caption">Figure 1: Decooupled task offloading workflow via Redis brokers and TensorFlow inference agents.</div>
+    </div>
+
+    <!-- SERVICES CLASSIFIED -->
+    <div class="content-block">
+      <h2>Service Explanations</h2>
+      <div class="service-grid">
+        <div class="service-card">
+          <h3>Streamlit Dashboard <span>UI</span></h3>
+          <p>The client app provides login fields and image upload slots. It stores JWT credentials locally and renders classification tables along with historical feedback buttons.</p>
+        </div>
+        <div class="service-card">
+          <h3>FastAPI Gateway <span>API</span></h3>
+          <p>Serves the REST API. Validates requests via JWT, writes classification logs into PostgreSQL using SQLAlchemy, and enqueues classification tasks into Redis.</p>
+        </div>
+        <div class="service-card">
+          <h3>Redis Broker <span>Broker</span></h3>
+          <p>Maintains high-performance in-memory queues. It coordinates tasks between the FastAPI endpoints and TensorFlow model workers without blocking client requests.</p>
+        </div>
+        <div class="service-card">
+          <h3>TensorFlow Worker <span>Worker</span></h3>
+          <p>Monitors Redis queues. Downloads images from shared volumes, runs CNN ResNet50 inference, and commits final prediction lists back to PostgreSQL.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERFORMANCE LOGS -->
+    <div class="content-block">
+      <h2>Stress Testing & Load Scaling</h2>
+      <p>
+        To verify performance under load, the platform was subjected to automated concurrency stress testing using **Locust**:
+      </p>
+      <div class="code-wrap">
+# Example Locust Run Command
+$ locust -f stress_test/locustfile.py --host=http://localhost:8000 --users=50 --spawn-rate=5
+      </div>
+      <p>
+        During test execution:
+        <br/>
+        - **Decoupled Architecture Resilience**: The API Gateway maintained sub-10ms response times for JWT handshakes and metadata queries under 50 concurrent users.
+        <br/>
+        - **Queue Performance**: Redis successfully queued classification requests during model execution spikes, shielding the client from server-side thread blocks.
+      </p>
+    </div>
+
+    <!-- TECHNICAL HIGHLIGHTS -->
+    <div class="content-block">
+      <h2>Apple Silicon Optimization</h2>
+      <p>
+        A key contribution during deployment on Apple Silicon was resolving ARM64 compilation incompatibilities:
+        <br/>
+        - Created a dedicated **`Dockerfile.M1`** for compilation of TensorFlow and dependencies on M-series chips.
+        <br/>
+        - Adjusted Docker Compose file mappings to dynamically load configurations depending on host architectures.
+      </p>
+    </div>
+
+    <div class="button-group" style="justify-content: center;">
+      <a href="../index.html" class="btn-outline">← Back to Main Portfolio</a>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Joel Coyago — Quito, Ecuador · +593 996389269</p>
+    <p>Physicist · Cum Laude · EPN 2025</p>
+  </footer>
+
+</body>
+</html>

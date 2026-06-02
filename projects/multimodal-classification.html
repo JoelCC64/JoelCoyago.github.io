@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multimodal Product Classification — Joel Coyago</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --black: #0a0a0a;
+      --off-black: #111112;
+      --surface: #161618;
+      --surface-2: #1e1e21;
+      --border: rgba(255,255,255,0.07);
+      --accent: #e8d5a3;
+      --accent-2: #7fb5c1;
+      --accent-3: #c17f7f;
+      --text: #e8e6e1;
+      --muted: #888880;
+      --serif: 'Playfair Display', Georgia, serif;
+      --mono: 'DM Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 300;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ─── NOISE OVERLAY ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.4;
+    }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--black); }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.4rem 3rem;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+      text-decoration: none;
+    }
+
+    .nav-back {
+      color: var(--muted);
+      text-decoration: none;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-back:hover { color: var(--accent); }
+
+    /* ─── CONTAINER ─── */
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 8rem 2rem 4rem;
+    }
+
+    .header-section {
+      margin-bottom: 4rem;
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .eyebrow::before {
+      content: '';
+      display: block;
+      width: 30px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-family: var(--serif);
+      font-size: clamp(1.1rem, 2vw, 1.6rem);
+      color: var(--accent-2);
+      font-style: italic;
+      margin-bottom: 2rem;
+    }
+
+    /* ─── SPECS GRID ─── */
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 0;
+    }
+
+    .spec-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.2rem 1.5rem;
+      transition: border-color 0.25s;
+    }
+
+    .spec-item:hover { border-color: rgba(232,213,163,0.3); }
+
+    .spec-label {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .spec-value {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    /* ─── CONTENT BLOCKS ─── */
+    .content-block {
+      margin-bottom: 4rem;
+    }
+
+    .content-block h2 {
+      font-family: var(--serif);
+      font-size: 1.8rem;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+
+    .content-block p {
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.8;
+      margin-bottom: 1.5rem;
+    }
+
+    .content-block p strong {
+      color: var(--text);
+    }
+
+    /* ─── DIAGRAM BOX ─── */
+    .diagram-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      margin: 2.5rem 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .diagram-caption {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 1rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ─── COMPARISON GRID ─── */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 2.5rem;
+      margin-top: 1.5rem;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .comparison-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── TABLES ─── */
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--sans);
+      font-size: 0.9rem;
+      text-align: left;
+    }
+
+    .results-table th, .results-table td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .results-table th {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .results-table td strong {
+      color: var(--accent-2);
+    }
+
+    /* ─── BTNS ─── */
+    .button-group {
+      display: flex;
+      gap: 1.2rem;
+      margin-top: 3rem;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent);
+      color: var(--black);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 500;
+      padding: 0.85rem 1.8rem;
+      text-decoration: none;
+      transition: all 0.25s;
+    }
+
+    .btn-primary:hover {
+      background: #f0e4bd;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 400;
+      padding: 0.85rem 1.8rem;
+      text-decoration: none;
+      transition: all 0.25s;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      padding: 2.5rem 3rem;
+      background: var(--black);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6rem;
+    }
+
+    footer p {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 1.2rem 1.5rem; }
+      .container { padding-top: 6rem; }
+      footer { flex-direction: column; gap: 0.5rem; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="../index.html">JC</a>
+    <a class="nav-back" href="../index.html">← Back to Portfolio</a>
+  </nav>
+
+  <div class="container">
+    <header class="header-section">
+      <div class="eyebrow">Case Study / Machine Learning</div>
+      <h1>Multimodal Product Classification</h1>
+      <p class="subtitle">Categorizing E-Commerce Listings by Fusing Visual Catalog Images & Text Metadata</p>
+      
+      <div class="button-group">
+        <a href="https://github.com/JoelCC64/Multimodal-Image-Classification" target="_blank" class="btn-primary">View GitHub Repository ↗</a>
+        <a href="../index.html#proyectos" class="btn-outline">All Projects</a>
+      </div>
+    </header>
+
+    <!-- SPECS GRID -->
+    <div class="specs-grid">
+      <div class="spec-item">
+        <div class="spec-label">Timeline</div>
+        <div class="spec-value">2026</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-label">Role</div>
+        <div class="spec-value">Machine Learning Engineer</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-label">Frameworks</div>
+        <div class="spec-value">TensorFlow, Keras, Sentence-Transformers</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-label">Modality Fusion</div>
+        <div class="spec-value">Early-Fusion (Concatenation)</div>
+      </div>
+    </div>
+
+    <!-- MAIN DESCRIPTION -->
+    <div class="content-block">
+      <h2>Project Overview</h2>
+      <p>
+        In modern e-commerce platform catalog management, categorizing thousands of products dynamically is a challenging task. While text titles are highly descriptive, they can be ambiguous. Catalog images, on the other hand, provide clear physical shapes but lack brand and specification keywords.
+      </p>
+      <p>
+        This project implements a professional **multimodal machine learning pipeline** that categorizes product listings using an **early-fusion strategy**. Dense feature representation vectors are extracted independently from text metadata (using a sentence-transformer model) and product catalog images (using a visual backbone like ResNet50 or ConvNeXtV2). These vectors are merged and fed into a deep Multi-Layer Perceptron (MLP), yielding superior performance compared to single-modality baselines.
+      </p>
+    </div>
+
+    <!-- PIPELINE ARCHITECTURE DIAGRAM -->
+    <div class="content-block">
+      <h2>Pipeline Architecture</h2>
+      <p>
+        The pipeline ingests raw listings, extracts feature representations, fuses the representations early in the process, and evaluates the resulting feature map on both linear classifiers and a neural net:
+      </p>
+
+      <div class="diagram-box">
+        <svg viewBox="0 0 800 400" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" style="background:#161618; border-radius:4px; max-width:800px;">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#e8d5a3"/>
+            </marker>
+            <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#7fb5c1"/>
+            </marker>
+          </defs>
+
+          <!-- Input Node -->
+          <rect x="30" y="160" width="120" height="80" rx="3" fill="#1e1e21" stroke="#e8d5a3" stroke-width="1" />
+          <text x="90" y="195" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12" font-weight="bold" fill="#e8e6e1">E-Commerce</text>
+          <text x="90" y="212" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12" font-weight="bold" fill="#e8e6e1">Listing Input</text>
+          <text x="90" y="228" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#888880">(Image + Text)</text>
+
+          <!-- Modality Paths -->
+          <!-- Text Branch -->
+          <path d="M 150,200 L 220,100" stroke="#7fb5c1" stroke-width="1" marker-end="url(#arrow-blue)" fill="none" />
+          <text x="175" y="138" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#7fb5c1">Text</text>
+
+          <rect x="220" y="60" width="140" height="70" rx="3" fill="#1e1e21" stroke="#7fb5c1" stroke-width="1" />
+          <text x="290" y="87" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="11" font-weight="bold" fill="#e8e6e1">Language Encoder</text>
+          <text x="290" y="103" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#7fb5c1">all-MiniLM-L6-v2</text>
+          <text x="290" y="117" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#888880">384D Semantic Vector</text>
+
+          <!-- Image Branch -->
+          <path d="M 150,200 L 220,300" stroke="#7fb5c1" stroke-width="1" marker-end="url(#arrow-blue)" fill="none" />
+          <text x="175" y="272" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#7fb5c1">Image</text>
+
+          <rect x="220" y="270" width="140" height="70" rx="3" fill="#1e1e21" stroke="#7fb5c1" stroke-width="1" />
+          <text x="290" y="297" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="11" font-weight="bold" fill="#e8e6e1">Visual Encoder</text>
+          <text x="290" y="313" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#7fb5c1">ResNet50 / ConvNeXt</text>
+          <text x="290" y="327" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#888880">2048D Visual Vector</text>
+
+          <!-- Early Fusion Node -->
+          <path d="M 360,95 L 430,165" stroke="#7fb5c1" stroke-width="1" marker-end="url(#arrow-blue)" fill="none" />
+          <path d="M 360,305 L 430,235" stroke="#7fb5c1" stroke-width="1" marker-end="url(#arrow-blue)" fill="none" />
+
+          <rect x="430" y="160" width="130" height="80" rx="3" fill="#1e1e21" stroke="#e8d5a3" stroke-width="1" />
+          <text x="495" y="190" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="11" font-weight="bold" fill="#e8e6e1">Early Fusion Layer</text>
+          <text x="495" y="206" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#e8d5a3">Concatenation</text>
+          <text x="495" y="222" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#888880">2432D Combined Vector</text>
+
+          <!-- Classifier -->
+          <path d="M 560,200 L 610,200" stroke="#7fb5c1" stroke-width="1.2" marker-end="url(#arrow-blue)" />
+
+          <rect x="610" y="155" width="160" height="90" rx="3" fill="#1e1e21" stroke="#c17f7f" stroke-width="1" />
+          <text x="690" y="180" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="11" font-weight="bold" fill="#e8e6e1">Deep MLP Classifier</text>
+          <text x="690" y="196" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#c17f7f">Batch Normalization</text>
+          <text x="690" y="210" text-anchor="middle" font-family="'DM Mono', monospace" font-size="9" fill="#c17f7f">Dropout (p = 0.2)</text>
+          <text x="690" y="228" text-anchor="middle" font-family="'DM Mono', monospace" font-size="8" fill="#888880">Categorization Metrics</text>
+        </svg>
+      </div>
+      <div class="diagram-caption">Figure 1: Deep learning feature pipeline showing early embedding fusion.</div>
+    </div>
+
+    <!-- COMPARISON SECTION -->
+    <div class="content-block">
+      <h2>Modality & Model Performance Comparison</h2>
+      <p>
+        The pipeline was rigorously validated by isolating textual and visual components and comparing them against the fused representation:
+      </p>
+
+      <div class="comparison-grid">
+        <!-- SVG Performance Chart -->
+        <div>
+          <svg viewBox="0 0 350 250" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" style="background:#161618; border-radius:4px;">
+            <!-- Grid Lines -->
+            <line x1="60" y1="20" x2="320" y2="20" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+            <line x1="60" y1="70" x2="320" y2="70" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+            <line x1="60" y1="120" x2="320" y2="120" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+            <line x1="60" y1="170" x2="320" y2="170" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+            <line x1="60" y1="220" x2="320" y2="220" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+            <!-- Y Axis Labels -->
+            <text x="50" y="223" text-anchor="end" font-family="DM Mono, monospace" font-size="8" fill="#888">0%</text>
+            <text x="50" y="173" text-anchor="end" font-family="DM Mono, monospace" font-size="8" fill="#888">25%</text>
+            <text x="50" y="123" text-anchor="end" font-family="DM Mono, monospace" font-size="8" fill="#888">50%</text>
+            <text x="50" y="73" text-anchor="end" font-family="DM Mono, monospace" font-size="8" fill="#888">75%</text>
+            <text x="50" y="23" text-anchor="end" font-family="DM Mono, monospace" font-size="8" fill="#888">100%</text>
+
+            <!-- Bars -->
+            <!-- Image Only: ~75% Acc (height = 150px) -->
+            <rect x="95" y="70" width="35" height="150" fill="#c17f7f" opacity="0.85" rx="1"/>
+            <text x="112.5" y="60" text-anchor="middle" font-family="DM Mono, monospace" font-size="9" font-weight="bold" fill="#e8e6e1">75%</text>
+
+            <!-- Text Only: ~85% Acc (height = 170px) -->
+            <rect x="175" y="50" width="35" height="170" fill="#7fb5c1" opacity="0.85" rx="1"/>
+            <text x="192.5" y="40" text-anchor="middle" font-family="DM Mono, monospace" font-size="9" font-weight="bold" fill="#e8e6e1">85%</text>
+
+            <!-- Multimodal Fused: >=85% (height = 180px) -->
+            <rect x="255" y="40" width="35" height="180" fill="#e8d5a3" opacity="0.9" rx="1"/>
+            <text x="272.5" y="30" text-anchor="middle" font-family="DM Mono, monospace" font-size="9" font-weight="bold" fill="#e8e6e1">90%</text>
+
+            <!-- X Axis Labels -->
+            <text x="112.5" y="235" text-anchor="middle" font-family="DM Mono, monospace" font-size="8" fill="#888">Image Only</text>
+            <text x="192.5" y="235" text-anchor="middle" font-family="DM Mono, monospace" font-size="8" fill="#888">Text Only</text>
+            <text x="272.5" y="235" text-anchor="middle" font-family="DM Mono, monospace" font-size="8" fill="#e8d5a3">Fused MM</text>
+          </svg>
+        </div>
+
+        <!-- Table Info -->
+        <div>
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>Configuration</th>
+                <th>Accuracy</th>
+                <th>F1-Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Image Only (ResNet50)</td>
+                <td>~75%</td>
+                <td>~70%</td>
+              </tr>
+              <tr>
+                <td>Text Only (MiniLM)</td>
+                <td>~85%</td>
+                <td>~80%</td>
+              </tr>
+              <tr>
+                <td><strong>Multimodal Fused (MLP)</strong></td>
+                <td><strong>&gt;= 85% (Max 90%)</strong></td>
+                <td><strong>&gt;= 80% (Max 88%)</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="diagram-caption">Figure 2: Performance metrics comparison showing classification metrics across modalities.</div>
+    </div>
+
+    <!-- TECHNICAL HIGHLIGHTS -->
+    <div class="content-block">
+      <h2>Key Architectural Findings</h2>
+      <p>
+        - **Early Fusion Synergy**: Concatenating dense representations yields a highly expressive joint feature space. The visual vectors provide outlines (resolving text ambiguities like missing color or shape attributes), while text embeddings capture spec-specific terms, generating a balanced model.
+        <br/>
+        - **Importance of Regularization**: Fusing high-dimensional vectors creates wide input layers. The model integrates **Batch Normalization** and **Dropout** ($p=0.2$) directly after fusion to stabilize gradient updates and prevent quick memorization (overfitting) of listing tokens.
+        <br/>
+        - **Pytest Suite Verification**: The repository contains modular tests (`tests/`) ensuring vector dimensionalities, data merging, model layer output dimensions, and visual backbones remain consistent under codebase refactorings.
+      </p>
+    </div>
+
+    <div class="button-group" style="justify-content: center;">
+      <a href="../index.html" class="btn-outline">← Back to Main Portfolio</a>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Joel Coyago — Quito, Ecuador · +593 996389269</p>
+    <p>Physicist · Cum Laude · EPN 2025</p>
+  </footer>
+
+</body>
+</html>
