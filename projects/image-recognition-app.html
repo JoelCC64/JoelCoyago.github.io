@@ -394,7 +394,7 @@
         Executing heavy neural network models (like ResNet50 in TensorFlow) within HTTP request-response cycles can lead to high latency and thread blocking at the API layer. Under high load, this causes timeouts and gateway errors.
       </p>
       <p>
-        This project implements a **distributed, microservices-based image classification infrastructure**. By separating the system into decoupled containers, tasks are offloaded asynchronously. An **API Gateway** handles routing and client authentication. The gateway pushes incoming images to a **Redis** message queue. An independent **TensorFlow worker** then processes these jobs in the background, updating prediction results in a **PostgreSQL** database.
+        This project implements a <strong>distributed, microservices-based image classification infrastructure</strong>. By separating the system into decoupled containers, tasks are offloaded asynchronously. An <strong>API Gateway</strong> handles routing and client authentication. The gateway pushes incoming images to a <strong>Redis</strong> message queue. An independent <strong>TensorFlow worker</strong> then processes these jobs in the background, updating prediction results in a <strong>PostgreSQL</strong> database.
       </p>
     </div>
 
@@ -501,7 +501,7 @@
     <div class="content-block">
       <h2>Stress Testing & Load Scaling</h2>
       <p>
-        To verify performance under load, the platform was subjected to automated concurrency stress testing using **Locust**:
+        To verify performance under load, the platform was subjected to automated concurrency stress testing using <strong>Locust</strong>:
       </p>
       <div class="code-wrap">
 # Example Locust Run Command
@@ -510,9 +510,9 @@ $ locust -f stress_test/locustfile.py --host=http://localhost:8000 --users=50 --
       <p>
         During test execution:
         <br/>
-        - **Decoupled Architecture Resilience**: The API Gateway maintained sub-10ms response times for JWT handshakes and metadata queries under 50 concurrent users.
+        - <strong>Decoupled Architecture Resilience</strong>: The API Gateway maintained sub-10ms response times for JWT handshakes and metadata queries under 50 concurrent users.
         <br/>
-        - **Queue Performance**: Redis successfully queued classification requests during model execution spikes, shielding the client from server-side thread blocks.
+        - <strong>Queue Performance</strong>: Redis successfully queued classification requests during model execution spikes, shielding the client from server-side thread blocks.
       </p>
     </div>
 
@@ -522,7 +522,7 @@ $ locust -f stress_test/locustfile.py --host=http://localhost:8000 --users=50 --
       <p>
         A key contribution during deployment on Apple Silicon was resolving ARM64 compilation incompatibilities:
         <br/>
-        - Created a dedicated **`Dockerfile.M1`** for compilation of TensorFlow and dependencies on M-series chips.
+        - Created a dedicated <strong><code>Dockerfile.M1</code></strong> for compilation of TensorFlow and dependencies on M-series chips.
         <br/>
         - Adjusted Docker Compose file mappings to dynamically load configurations depending on host architectures.
       </p>

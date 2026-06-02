@@ -382,7 +382,7 @@
         In modern e-commerce platform catalog management, categorizing thousands of products dynamically is a challenging task. While text titles are highly descriptive, they can be ambiguous. Catalog images, on the other hand, provide clear physical shapes but lack brand and specification keywords.
       </p>
       <p>
-        This project implements a professional **multimodal machine learning pipeline** that categorizes product listings using an **early-fusion strategy**. Dense feature representation vectors are extracted independently from text metadata (using a sentence-transformer model) and product catalog images (using a visual backbone like ResNet50 or ConvNeXtV2). These vectors are merged and fed into a deep Multi-Layer Perceptron (MLP), yielding superior performance compared to single-modality baselines.
+        This project implements a professional <strong>multimodal machine learning pipeline</strong> that categorizes product listings using an <strong>early-fusion strategy</strong>. Dense feature representation vectors are extracted independently from text metadata (using a sentence-transformer model) and product catalog images (using a visual backbone like ResNet50 or ConvNeXtV2). These vectors are merged and fed into a deep Multi-Layer Perceptron (MLP), yielding superior performance compared to single-modality baselines.
       </p>
     </div>
 
@@ -533,11 +533,11 @@
     <div class="content-block">
       <h2>Key Architectural Findings</h2>
       <p>
-        - **Early Fusion Synergy**: Concatenating dense representations yields a highly expressive joint feature space. The visual vectors provide outlines (resolving text ambiguities like missing color or shape attributes), while text embeddings capture spec-specific terms, generating a balanced model.
+        - <strong>Early Fusion Synergy</strong>: Concatenating dense representations yields a highly expressive joint feature space. The visual vectors provide outlines (resolving text ambiguities like missing color or shape attributes), while text embeddings capture spec-specific terms, generating a balanced model.
         <br/>
-        - **Importance of Regularization**: Fusing high-dimensional vectors creates wide input layers. The model integrates **Batch Normalization** and **Dropout** ($p=0.2$) directly after fusion to stabilize gradient updates and prevent quick memorization (overfitting) of listing tokens.
+        - <strong>Importance of Regularization</strong>: Fusing high-dimensional vectors creates wide input layers. The model integrates <strong>Batch Normalization</strong> and <strong>Dropout</strong> ($p=0.2$) directly after fusion to stabilize gradient updates and prevent quick memorization (overfitting) of listing tokens.
         <br/>
-        - **Pytest Suite Verification**: The repository contains modular tests (`tests/`) ensuring vector dimensionalities, data merging, model layer output dimensions, and visual backbones remain consistent under codebase refactorings.
+        - <strong>Pytest Suite Verification</strong>: The repository contains modular tests (`tests/`) ensuring vector dimensionalities, data merging, model layer output dimensions, and visual backbones remain consistent under codebase refactorings.
       </p>
     </div>
 
