@@ -6,47 +6,48 @@
   <title>Distributed Image Classifier — Joel Coyago</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <style>
 
     :root {
-      --bg: #faf9f5;
-      --bg-alt: #f0eee6;
-      --ink: #1a1915;
-      --muted: #6b6a63;
-      --faint: #a3a199;
-      --accent: #cc785c;
-      --accent-deep: #b1593d;
-      --line: rgba(26,25,21,0.10);
-      --line-soft: rgba(26,25,21,0.06);
+      --bg: #f7f8f8;
+      --bg-alt: #eceff0;
+      --ink: #141618;
+      --muted: #565f5f;
+      --faint: #949c9c;
+      --accent: #0e8a8f;
+      --accent-deep: #0b6f73;
+      --line: rgba(20,22,24,0.11);
+      --line-soft: rgba(20,22,24,0.06);
       --card: #ffffff;
-      --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
-      --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --display: 'Space Grotesk', ui-sans-serif, sans-serif;
+      --sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'IBM Plex Mono', ui-monospace, monospace;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
     body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-weight: 400; line-height: 1.7; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-    ::selection { background: rgba(204,120,92,0.18); }
+    ::selection { background: rgba(14,138,143,0.16); }
     a { color: inherit; }
     ::-webkit-scrollbar { width: 10px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: rgba(26,25,21,0.15); border-radius: 10px; border: 3px solid var(--bg); }
-    code { font-family: 'Inter', ui-monospace, monospace; font-size: 0.88em; background: var(--bg-alt); padding: 0.1em 0.4em; border-radius: 4px; color: var(--accent-deep); }
+    ::-webkit-scrollbar-thumb { background: rgba(20,22,24,0.18); border-radius: 10px; border: 3px solid var(--bg); }
+    code { font-family: var(--mono); font-size: 0.86em; background: var(--bg-alt); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-deep); }
 
-    nav { position: fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding: 1.1rem 2rem; background: rgba(250,249,245,0.82); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line-soft); }
-    .nav-logo { font-family: var(--serif); font-size: 1.05rem; font-weight: 500; color: var(--ink); text-decoration: none; letter-spacing: -0.01em; }
-    .nav-back { color: var(--muted); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+    nav { position: fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding: 1.05rem 2rem; background: rgba(247,248,248,0.84); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line-soft); }
+    .nav-logo { font-family: var(--display); font-size: 1.02rem; font-weight: 600; color: var(--ink); text-decoration: none; letter-spacing: -0.01em; }
+    .nav-back { font-family: var(--mono); color: var(--muted); text-decoration: none; font-size: 0.76rem; letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
     .nav-back:hover { color: var(--accent-deep); }
 
     .container { max-width: 900px; margin: 0 auto; padding: 8rem 2rem 4rem; }
     .header-section { margin-bottom: 3.5rem; }
-    .eyebrow { font-size: 0.8rem; letter-spacing: 0.02em; color: var(--accent-deep); margin-bottom: 1.2rem; display:flex; align-items:center; gap: 0.7rem; }
-    .eyebrow::before { content:''; width: 22px; height:1px; background: var(--accent); }
-    h1 { font-family: var(--serif); font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 500; line-height: 1.05; letter-spacing: -0.025em; margin-bottom: 0.8rem; }
-    .subtitle { font-size: 1.1rem; color: var(--muted); max-width: 42rem; margin-bottom: 2rem; }
+    .eyebrow { font-family: var(--mono); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); margin-bottom: 1.3rem; display:flex; align-items:center; gap: 0.7rem; }
+    .eyebrow::before { content:''; width: 20px; height:1px; background: var(--accent); }
+    h1 { font-family: var(--display); font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 500; line-height: 1.03; letter-spacing: -0.03em; margin-bottom: 0.8rem; }
+    .subtitle { font-size: 1.08rem; color: var(--muted); max-width: 42rem; margin-bottom: 2rem; }
     .button-group { display:flex; gap: 0.8rem; flex-wrap: wrap; }
-    .btn-primary, .btn-outline { display:inline-flex; align-items:center; gap:0.4rem; font-size:0.9rem; font-weight:500; padding:0.7rem 1.4rem; border-radius:8px; text-decoration:none; transition: all 0.2s; border:1px solid transparent; }
+    .btn-primary, .btn-outline { display:inline-flex; align-items:center; gap:0.4rem; font-family: var(--mono); font-size:0.8rem; font-weight:500; letter-spacing: 0.04em; padding:0.72rem 1.4rem; border-radius:2px; text-decoration:none; transition: all 0.2s; border:1px solid transparent; }
     .btn-primary { background: var(--accent); color:#fff; }
     .btn-primary:hover { background: var(--accent-deep); }
     .btn-outline { color: var(--ink); border-color: var(--line); }
@@ -55,45 +56,45 @@
     .specs-grid { display:grid; grid-template-columns: repeat(4, 1fr); border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin-bottom: 3.5rem; }
     .spec-item { padding: 1.3rem 1.3rem 1.3rem 0; border-right: 1px solid var(--line-soft); }
     .spec-item:last-child { border-right:none; }
-    .spec-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); margin-bottom: 0.4rem; }
+    .spec-label { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--faint); margin-bottom: 0.4rem; }
     .spec-value { font-size: 0.9rem; color: var(--ink); }
 
     .content-block { margin-bottom: 3.4rem; }
-    .content-block h2 { font-family: var(--serif); font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 500; letter-spacing: -0.015em; margin-bottom: 1.2rem; }
-    .content-block h3 { font-family: var(--serif); font-size: 1.15rem; font-weight: 500; margin-bottom: 0.6rem; }
+    .content-block h2 { font-family: var(--display); font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 500; letter-spacing: -0.025em; margin-bottom: 1.2rem; }
+    .content-block h3 { font-family: var(--display); font-size: 1.12rem; font-weight: 500; letter-spacing: -0.01em; margin-bottom: 0.6rem; }
     .content-block p { color: var(--muted); margin-bottom: 1rem; }
     .content-block p strong { color: var(--ink); font-weight: 500; }
 
-    .diagram-box { border: 1px solid var(--line); border-radius: 12px; padding: 1.5rem; background: var(--card); margin: 1.4rem 0 0.8rem; }
+    .diagram-box { border: 1px solid var(--line); border-radius: 3px; padding: 1.5rem; background: var(--card); margin: 1.4rem 0 0.8rem; }
     .diagram-box svg { display:block; }
-    .diagram-caption { font-size: 0.8rem; color: var(--faint); font-style: italic; text-align: center; }
+    .diagram-caption { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.03em; color: var(--faint); text-align: center; }
 
     .feature-grid, .service-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap: 1.2rem; }
-    .feature-card, .service-card { border: 1px solid var(--line); border-radius: 12px; padding: 1.6rem; background: var(--card); }
+    .feature-card, .service-card { border: 1px solid var(--line); border-radius: 3px; padding: 1.6rem; background: var(--card); }
     .feature-card h3, .service-card h3 { display:flex; align-items:center; justify-content: space-between; gap: 0.6rem; }
-    .service-card h3 span { font-family: var(--sans); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-deep); border:1px solid rgba(204,120,92,0.3); background: rgba(204,120,92,0.06); padding: 0.15rem 0.5rem; border-radius: 100px; font-weight: 500; }
+    .service-card h3 span { font-family: var(--mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-deep); border:1px solid rgba(14,138,143,0.35); background: rgba(14,138,143,0.06); padding: 0.15rem 0.5rem; border-radius: 2px; font-weight: 500; }
     .feature-card p, .service-card p { color: var(--muted); font-size: 0.92rem; margin-bottom: 0; }
 
     .db-schema-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-    .table-card { border:1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); }
+    .table-card { border:1px solid var(--line); border-radius: 3px; overflow: hidden; background: var(--card); }
     .table-header { display:flex; justify-content: space-between; align-items:center; padding: 0.7rem 1rem; background: var(--bg-alt); border-bottom: 1px solid var(--line); }
-    .table-header span:first-child { font-family: 'Inter', ui-monospace, monospace; font-weight: 500; font-size: 0.85rem; color: var(--ink); }
-    .table-header span:last-child { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); }
+    .table-header span:first-child { font-family: var(--mono); font-weight: 500; font-size: 0.82rem; color: var(--ink); }
+    .table-header span:last-child { font-family: var(--mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); }
     .table-fields { padding: 0.5rem 0; }
     .table-field { display:flex; justify-content: space-between; padding: 0.35rem 1rem; font-size: 0.8rem; }
-    .field-name { color: var(--ink); font-family: 'Inter', ui-monospace, monospace; }
-    .field-type { color: var(--faint); font-family: 'Inter', ui-monospace, monospace; font-size: 0.72rem; }
+    .field-name { color: var(--ink); font-family: var(--mono); }
+    .field-type { color: var(--faint); font-family: var(--mono); font-size: 0.72rem; }
 
-    .code-wrap { font-family: 'Inter', ui-monospace, monospace; font-size: 0.82rem; background: var(--bg-alt); border:1px solid var(--line); border-radius: 8px; padding: 1rem 1.2rem; color: var(--ink); white-space: pre-wrap; margin: 1rem 0; overflow-x:auto; }
+    .code-wrap { font-family: var(--mono); font-size: 0.8rem; background: var(--bg-alt); border:1px solid var(--line); border-radius: 3px; padding: 1rem 1.2rem; color: var(--ink); white-space: pre-wrap; margin: 1rem 0; overflow-x:auto; }
 
     .comparison-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items:center; }
     .results-table { width:100%; border-collapse: collapse; font-size: 0.85rem; }
-    .results-table th { text-align:left; padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--line); color: var(--faint); font-weight:500; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; }
+    .results-table th { text-align:left; padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--line); color: var(--faint); font-weight:500; text-transform: uppercase; font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.06em; }
     .results-table td { padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--line-soft); color: var(--muted); }
     .results-table td strong { color: var(--ink); }
 
     footer { border-top: 1px solid var(--line-soft); padding: 2rem; display:flex; justify-content: space-between; align-items:center; max-width: 900px; margin: 2rem auto 0; flex-wrap:wrap; gap:0.5rem; }
-    footer p { font-size: 0.82rem; color: var(--faint); }
+    footer p { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.03em; color: var(--faint); }
 
     @media (max-width: 760px) {
       .specs-grid { grid-template-columns: repeat(2, 1fr); }
@@ -168,66 +169,66 @@
         <svg viewBox="0 0 800 380" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" style="background:#ffffff; border-radius:4px; max-width:800px;">
           <defs>
             <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#cc785c"/>
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#0e8a8f"/>
             </marker>
             <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#5b7a86"/>
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#6b7280"/>
             </marker>
           </defs>
 
           <!-- Outer Box representing Docker Compose -->
-          <rect x="20" y="20" width="760" height="340" rx="6" fill="#f7f6f1" stroke="rgba(26,25,21,0.08)" stroke-width="1.5" />
-          <text x="35" y="42" font-family="'Inter', monospace" font-size="9" fill="rgba(26,25,21,0.35)" letter-spacing="1">DOCKER COMPOSE NETWORK (shared_network)</text>
+          <rect x="20" y="20" width="760" height="340" rx="6" fill="#f2f4f4" stroke="rgba(20,22,24,0.08)" stroke-width="1.5" />
+          <text x="35" y="42" font-family="'IBM Plex Mono', monospace" font-size="9" fill="rgba(20,22,24,0.35)" letter-spacing="1">DOCKER COMPOSE NETWORK (shared_network)</text>
 
           <!-- Web UI -->
-          <rect x="50" y="140" width="130" height="70" rx="3" fill="#f4f2ec" stroke="#5b7a86" stroke-width="1" />
-          <text x="115" y="172" text-anchor="middle" font-family="'Inter', sans-serif" font-size="11" font-weight="bold" fill="#1a1915">Web Dashboard</text>
-          <text x="115" y="190" text-anchor="middle" font-family="'Inter', monospace" font-size="9" fill="#5b7a86">Streamlit UI</text>
+          <rect x="50" y="140" width="130" height="70" rx="3" fill="#eef1f1" stroke="#6b7280" stroke-width="1" />
+          <text x="115" y="172" text-anchor="middle" font-family="'Space Grotesk', sans-serif" font-size="11" font-weight="bold" fill="#141618">Web Dashboard</text>
+          <text x="115" y="190" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#6b7280">Streamlit UI</text>
 
           <!-- API Gateway -->
-          <rect x="240" y="140" width="140" height="70" rx="3" fill="#f4f2ec" stroke="#5b7a86" stroke-width="1" />
-          <text x="310" y="172" text-anchor="middle" font-family="'Inter', sans-serif" font-size="11" font-weight="bold" fill="#1a1915">API Gateway</text>
-          <text x="310" y="190" text-anchor="middle" font-family="'Inter', monospace" font-size="9" fill="#5b7a86">FastAPI / JWT Auth</text>
+          <rect x="240" y="140" width="140" height="70" rx="3" fill="#eef1f1" stroke="#6b7280" stroke-width="1" />
+          <text x="310" y="172" text-anchor="middle" font-family="'Space Grotesk', sans-serif" font-size="11" font-weight="bold" fill="#141618">API Gateway</text>
+          <text x="310" y="190" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#6b7280">FastAPI / JWT Auth</text>
 
           <!-- Redis Broker -->
-          <rect x="440" y="70" width="120" height="70" rx="3" fill="#f4f2ec" stroke="#cc785c" stroke-width="1" />
-          <text x="500" y="102" text-anchor="middle" font-family="'Inter', sans-serif" font-size="11" font-weight="bold" fill="#1a1915">Broker Service</text>
-          <text x="500" y="120" text-anchor="middle" font-family="'Inter', monospace" font-size="9" fill="#cc785c">Redis Task Queue</text>
+          <rect x="440" y="70" width="120" height="70" rx="3" fill="#eef1f1" stroke="#0e8a8f" stroke-width="1" />
+          <text x="500" y="102" text-anchor="middle" font-family="'Space Grotesk', sans-serif" font-size="11" font-weight="bold" fill="#141618">Broker Service</text>
+          <text x="500" y="120" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#0e8a8f">Redis Task Queue</text>
 
           <!-- TensorFlow Worker -->
-          <rect x="620" y="140" width="130" height="70" rx="3" fill="#f4f2ec" stroke="#5b7a86" stroke-width="1" />
-          <text x="685" y="172" text-anchor="middle" font-family="'Inter', sans-serif" font-size="11" font-weight="bold" fill="#1a1915">Model Worker</text>
-          <text x="685" y="190" text-anchor="middle" font-family="'Inter', monospace" font-size="9" fill="#5b7a86">TensorFlow / ResNet50</text>
+          <rect x="620" y="140" width="130" height="70" rx="3" fill="#eef1f1" stroke="#6b7280" stroke-width="1" />
+          <text x="685" y="172" text-anchor="middle" font-family="'Space Grotesk', sans-serif" font-size="11" font-weight="bold" fill="#141618">Model Worker</text>
+          <text x="685" y="190" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#6b7280">TensorFlow / ResNet50</text>
 
           <!-- PostgreSQL -->
-          <rect x="440" y="210" width="120" height="70" rx="3" fill="#f4f2ec" stroke="#cc785c" stroke-width="1" />
-          <text x="500" y="242" text-anchor="middle" font-family="'Inter', sans-serif" font-size="11" font-weight="bold" fill="#1a1915">Data Store</text>
-          <text x="500" y="260" text-anchor="middle" font-family="'Inter', monospace" font-size="9" fill="#cc785c">PostgreSQL</text>
+          <rect x="440" y="210" width="120" height="70" rx="3" fill="#eef1f1" stroke="#0e8a8f" stroke-width="1" />
+          <text x="500" y="242" text-anchor="middle" font-family="'Space Grotesk', sans-serif" font-size="11" font-weight="bold" fill="#141618">Data Store</text>
+          <text x="500" y="260" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#0e8a8f">PostgreSQL</text>
 
           <!-- Arrows & Connections -->
           <!-- Web UI <--> API Gateway -->
-          <path d="M 180,175 L 232,175" stroke="#5b7a86" stroke-width="1" marker-end="url(#arrow-blue)" marker-start="url(#arrow-blue)" />
-          <text x="210" y="165" text-anchor="middle" font-family="'Inter', monospace" font-size="7" fill="#5b7a86">HTTP / JWT</text>
+          <path d="M 180,175 L 232,175" stroke="#6b7280" stroke-width="1" marker-end="url(#arrow-blue)" marker-start="url(#arrow-blue)" />
+          <text x="210" y="165" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="7" fill="#6b7280">HTTP / JWT</text>
 
           <!-- API Gateway --> Redis Broker -->
-          <path d="M 310,140 L 310,105 L 432,105" stroke="#5b7a86" stroke-width="1" marker-end="url(#arrow-blue)" fill="none" />
-          <text x="370" y="97" text-anchor="middle" font-family="'Inter', monospace" font-size="7" fill="#5b7a86">Enqueue Task</text>
+          <path d="M 310,140 L 310,105 L 432,105" stroke="#6b7280" stroke-width="1" marker-end="url(#arrow-blue)" fill="none" />
+          <text x="370" y="97" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="7" fill="#6b7280">Enqueue Task</text>
 
           <!-- Redis Broker --> Model Worker -->
-          <path d="M 560,105 L 685,105 L 685,132" stroke="#cc785c" stroke-width="1" marker-end="url(#arrow)" fill="none" />
-          <text x="622" y="97" text-anchor="middle" font-family="'Inter', monospace" font-size="7" fill="#cc785c">Dequeue Task</text>
+          <path d="M 560,105 L 685,105 L 685,132" stroke="#0e8a8f" stroke-width="1" marker-end="url(#arrow)" fill="none" />
+          <text x="622" y="97" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="7" fill="#0e8a8f">Dequeue Task</text>
 
           <!-- Model Worker --> PostgreSQL -->
-          <path d="M 685,210 L 685,245 L 568,245" stroke="#5b7a86" stroke-width="1" marker-end="url(#arrow-blue)" fill="none" />
-          <text x="626" y="237" text-anchor="middle" font-family="'Inter', monospace" font-size="7" fill="#5b7a86">Save Prediction</text>
+          <path d="M 685,210 L 685,245 L 568,245" stroke="#6b7280" stroke-width="1" marker-end="url(#arrow-blue)" fill="none" />
+          <text x="626" y="237" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="7" fill="#6b7280">Save Prediction</text>
 
           <!-- API Gateway <--> PostgreSQL -->
-          <path d="M 310,210 L 310,245 L 432,245" stroke="#5b7a86" stroke-width="1" marker-end="url(#arrow-blue)" marker-start="url(#arrow-blue)" fill="none" />
-          <text x="370" y="237" text-anchor="middle" font-family="'Inter', monospace" font-size="7" fill="#5b7a86">Validate User / Logs</text>
+          <path d="M 310,210 L 310,245 L 432,245" stroke="#6b7280" stroke-width="1" marker-end="url(#arrow-blue)" marker-start="url(#arrow-blue)" fill="none" />
+          <text x="370" y="237" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="7" fill="#6b7280">Validate User / Logs</text>
 
           <!-- Shared Volumes Overlay note -->
-          <path d="M 345,210 L 345,320 L 650,320 L 650,210" stroke="rgba(26,25,21,0.22)" stroke-width="0.8" fill="none" stroke-dasharray="3,3" />
-          <text x="497" y="312" text-anchor="middle" font-family="'Inter', monospace" font-size="7" fill="#8a887f">Shared Media Mount (Images Repository)</text>
+          <path d="M 345,210 L 345,320 L 650,320 L 650,210" stroke="rgba(20,22,24,0.22)" stroke-width="0.8" fill="none" stroke-dasharray="3,3" />
+          <text x="497" y="312" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="7" fill="#949c9c">Shared Media Mount (Images Repository)</text>
         </svg>
       </div>
       <div class="diagram-caption">Figure 1: Decooupled task offloading workflow via Redis brokers and TensorFlow inference agents.</div>
