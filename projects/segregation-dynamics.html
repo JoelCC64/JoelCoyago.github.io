@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Segregation Dynamics — Joel Coyago</title>
+  <title>Segregation Dynamics · Joel Coyago</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -145,10 +145,10 @@
     <div class="content-block">
       <h2>Project Overview</h2>
       <p>
-        In 1971 Thomas Schelling showed a cornerstone result of complex-systems science: even <strong>mild individual preferences</strong> about one's neighbours can produce <strong>strong collective segregation</strong> — no agent wants a segregated city, yet segregation emerges. This project studies a continuous-space variant of that model: 2,000 point agents of two types live in an open 100 × 100 domain, and an agent is "happy" only if at least <code>K_MIN = 30</code> same-type neighbours sit within distance <code>R = 10</code>. Unhappy agents teleport to random locations until they find one that makes them happy.
+        In 1971 Thomas Schelling showed a cornerstone result of complex-systems science: even <strong>mild individual preferences</strong> about one's neighbours can produce <strong>strong collective segregation</strong>: no agent wants a segregated city, yet segregation emerges. This project studies a continuous-space variant of that model: 2,000 point agents of two types live in an open 100 × 100 domain, and an agent is "happy" only if at least <code>K_MIN = 30</code> same-type neighbours sit within distance <code>R = 10</code>. Unhappy agents teleport to random locations until they find one that makes them happy.
       </p>
       <p>
-        The model is implemented <strong>twice, on purpose</strong>. A Fortran 95 reference implementation answers the forward question — <em>what do these rules produce?</em> — at maximum speed. A differentiable PyTorch twin answers the inverse questions — <em>which parameters produce an observed outcome, and how sensitive is the outcome to them?</em> — by letting gradients flow through the simulated dynamics. Agent-based models are classically hard to calibrate precisely because they are non-differentiable; re-expressing the same model with smooth relaxations is what unlocks that second family of questions.
+        The model is implemented <strong>twice, on purpose</strong>. A Fortran 95 reference implementation answers the forward question (<em>what do these rules produce?</em>) at maximum speed. A differentiable PyTorch twin answers the inverse questions (<em>which parameters produce an observed outcome, and how sensitive is the outcome to them?</em>) by letting gradients flow through the simulated dynamics. Agent-based models are classically hard to calibrate precisely because they are non-differentiable; re-expressing the same model with smooth relaxations is what unlocks that second family of questions.
       </p>
     </div>
 
@@ -156,7 +156,7 @@
     <div class="content-block">
       <h2>Emergence, Measured</h2>
       <p>
-        The reference run starts from a statistically perfect mixture and self-organises into measurably segregated clusters — <strong>without any agent preferring segregation</strong>. Every dot below is a real agent position from the Fortran simulation (seed <code>20260707</code>, fully reproducible):
+        The reference run starts from a statistically perfect mixture and self-organises into measurably segregated clusters, <strong>without any agent preferring segregation</strong>. Every dot below is a real agent position from the Fortran simulation (seed <code>20260707</code>, fully reproducible):
       </p>
 
       <div class="diagram-box">
@@ -177,12 +177,12 @@
 <text x="600" y="433" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="#565f5f">segregation index 0.629 &#183; every agent happy</text>
 </svg>
       </div>
-      <div class="diagram-caption">Figure 1: Real agent configurations from the reference run — initial mixture (left) and converged state (right).</div>
+      <div class="diagram-caption">Figure 1: Real agent configurations from the reference run. Initial mixture (left), converged state (right).</div>
     </div>
 
     <div class="content-block">
       <p>
-        Two observables track the run: the <strong>fraction of happy agents</strong> (the stopping criterion) and the <strong>segregation index</strong> — the mean fraction of same-type agents among each agent's neighbours, where 0.5 means perfectly mixed and 1.0 fully segregated. The run converges after 1,099 relocation events, in ~0.4 s on a laptop CPU:
+        Two observables track the run: the <strong>fraction of happy agents</strong> (the stopping criterion) and the <strong>segregation index</strong>: the mean fraction of same-type agents among each agent's neighbours, where 0.5 means perfectly mixed and 1.0 fully segregated. The run converges after 1,099 relocation events, in ~0.4 s on a laptop CPU:
       </p>
 
       <div class="diagram-box">
@@ -232,19 +232,19 @@
 <circle cx="636.4" cy="176.4" r="3.4" fill="#c1561e" stroke="#ffffff" stroke-width="1.5"/>
 <circle cx="698.2" cy="170.1" r="3.4" fill="#c1561e" stroke="#ffffff" stroke-width="1.5"/>
 <circle cx="759.4" cy="168.7" r="3.4" fill="#c1561e" stroke="#ffffff" stroke-width="1.5"/>
-<text x="751.4" y="12.0" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="12" fill="#0c9298" font-weight="500">fraction happy &#8594; 1.00</text>
-<text x="751.4" y="154.7" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="12" fill="#c1561e" font-weight="500">segregation index &#8594; 0.63</text>
+<text x="751.4" y="12.0" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="12" fill="#0c9298" font-weight="500">fraction happy: 1.00</text>
+<text x="751.4" y="154.7" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="12" fill="#c1561e" font-weight="500">segregation index: 0.63</text>
 <text x="88.0" y="242.8" font-family="IBM Plex Mono, monospace" font-size="11" fill="#949c9c">0.50 = perfectly mixed</text>
 </svg>
       </div>
-      <div class="diagram-caption">Figure 2: Convergence of the reference run — every agent ends up happy; the population ends up segregated.</div>
+      <div class="diagram-caption">Figure 2: Convergence of the reference run. Every agent ends up happy; the population ends up segregated.</div>
     </div>
 
     <!-- TWO PARADIGMS -->
     <div class="content-block">
       <h2>Why Two Implementations?</h2>
       <p>
-        This is deliberately <strong>not</strong> a "legacy Fortran vs. modern Python" exercise — each paradigm serves a different scientific purpose:
+        This is deliberately <strong>not</strong> a "legacy Fortran vs. modern Python" exercise. Each paradigm serves a different scientific purpose:
       </p>
 
       <div class="diagram-box">
@@ -267,14 +267,14 @@
 
           <!-- Fortran branch -->
           <rect x="270" y="35" width="230" height="105" rx="3" fill="#eef1f1" stroke="#6b7280" stroke-width="1"/>
-          <text x="385" y="62" text-anchor="middle" font-family="'Space Grotesk', sans-serif" font-size="12" font-weight="bold" fill="#141618">Fortran 95 — forward engine</text>
+          <text x="385" y="62" text-anchor="middle" font-family="'Space Grotesk', sans-serif" font-size="12" font-weight="bold" fill="#141618">Fortran 95 · forward engine</text>
           <text x="385" y="82" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#565f5f">cell-linked lists · O(1) bookkeeping</text>
           <text x="385" y="98" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#565f5f">exact discrete rules · ~0.4 s/run</text>
           <text x="385" y="114" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#565f5f">ensembles · parameter sweeps</text>
 
           <!-- PyTorch branch -->
           <rect x="270" y="220" width="230" height="105" rx="3" fill="#eef1f1" stroke="#0e8a8f" stroke-width="1"/>
-          <text x="385" y="247" text-anchor="middle" font-family="'Space Grotesk', sans-serif" font-size="12" font-weight="bold" fill="#141618">PyTorch — differentiable twin</text>
+          <text x="385" y="247" text-anchor="middle" font-family="'Space Grotesk', sans-serif" font-size="12" font-weight="bold" fill="#141618">PyTorch · differentiable twin</text>
           <text x="385" y="267" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#0b6f73">smooth relaxations of the rules</text>
           <text x="385" y="283" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#0b6f73">autodiff through the dynamics</text>
           <text x="385" y="299" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#0b6f73">gradient checkpointing</text>
@@ -298,7 +298,7 @@
           <text x="398" y="185" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#0b6f73">validated against</text>
         </svg>
       </div>
-      <div class="diagram-caption">Figure 3: One model, two engines — the twin is validated against the Fortran reference, then answers questions the reference cannot.</div>
+      <div class="diagram-caption">Figure 3: One model, two engines. The twin is validated against the Fortran reference, then answers questions the reference cannot.</div>
     </div>
 
     <!-- RELAXATION -->
@@ -320,13 +320,13 @@
         <tbody>
           <tr>
             <td>Neighbourhood</td>
-            <td><code>1[d ≤ R]</code> — hard disk</td>
-            <td><code>σ((R − d)/τ_d)</code> — sigmoid shell</td>
+            <td><code>1[d ≤ R]</code> (hard disk)</td>
+            <td><code>σ((R − d)/τ_d)</code> (sigmoid shell)</td>
           </tr>
           <tr>
             <td>Happiness</td>
-            <td><code>1[n ≥ K_MIN]</code> — Heaviside step</td>
-            <td><code>σ((n − K_MIN)/τ_h)</code> — soft gate</td>
+            <td><code>1[n ≥ K_MIN]</code> (Heaviside step)</td>
+            <td><code>σ((n − K_MIN)/τ_h)</code> (soft gate)</td>
           </tr>
           <tr>
             <td>Kinetics</td>
@@ -337,27 +337,27 @@
       </table>
       </div>
       <p style="margin-top:1rem;">
-        In the twin, each unhappy agent <strong>ascends the gradient of its own soft same-type count</strong>, gated by its unhappiness — happy agents stand still, exactly as in the discrete model. The drift is computed analytically so autodiff stays free for the outer derivatives with respect to <code>K_MIN</code>, <code>R</code> and <code>τ</code>. The trade-off is stated honestly: local drift is not global teleporting, so the twin is <strong>validated against the reference, not a bit-exact replica</strong> — both reach full happiness at reference density, with final hard segregation 0.59 (drift) vs 0.63 (teleports).
+        In the twin, each unhappy agent <strong>ascends the gradient of its own soft same-type count</strong>, gated by its unhappiness, while happy agents stand still, exactly as in the discrete model. The drift is computed analytically so autodiff stays free for the outer derivatives with respect to <code>K_MIN</code>, <code>R</code> and <code>τ</code>. The trade-off is stated honestly: local drift is not global teleporting, so the twin is <strong>validated against the reference, not a bit-exact replica</strong>: both reach full happiness at reference density, with final hard segregation 0.59 (drift) vs 0.63 (teleports).
       </p>
     </div>
 
     <!-- RESULTS -->
     <div class="content-block">
-      <h2>Result 1 — Sensitivity Analysis Through the Dynamics</h2>
+      <h2>Result 1: Sensitivity Analysis Through the Dynamics</h2>
       <p>
-        One backward pass through 100 unrolled simulation steps (N = 2,000, float64, gradient checkpointing) yields the exact derivative of the final segregation index with respect to every model parameter — numbers a forward simulator can only approximate with noisy, costly finite-difference sweeps:
+        One backward pass through 100 unrolled simulation steps (N = 2,000, float64, gradient checkpointing) yields the exact derivative of the final segregation index with respect to every model parameter, numbers that a forward simulator can only approximate with noisy, costly finite-difference sweeps:
       </p>
 
       <div class="stat-grid">
         <div class="stat-card">
           <div class="stat-label">∂ segregation / ∂ K_MIN</div>
           <div class="stat-value">+4.84 × 10⁻³</div>
-          <p>More demanding agents ⇒ <strong>more</strong> segregation. Schelling's qualitative insight, computed as a number.</p>
+          <p>More demanding agents produce <strong>more</strong> segregation. Schelling's qualitative insight, computed as a number.</p>
         </div>
         <div class="stat-card">
           <div class="stat-label">∂ segregation / ∂ R</div>
           <div class="stat-value">−2.26 × 10⁻²</div>
-          <p>Larger neighbourhoods dilute the same-type share — wider "vision" reduces segregation.</p>
+          <p>Larger neighbourhoods dilute the same-type share: wider "vision" reduces segregation.</p>
         </div>
       </div>
       <p>
@@ -366,7 +366,7 @@
     </div>
 
     <div class="content-block">
-      <h2>Result 2 — Gradient-Based Calibration (Inverse Problem)</h2>
+      <h2>Result 2: Gradient-Based Calibration (Inverse Problem)</h2>
       <p>
         The defining demo: a simulation is run with a <strong>hidden</strong> tolerance threshold K* = 35, and only its segregation trajectory is observed. Starting from a deliberately wrong guess of 24, Adam recovers the hidden parameter by backpropagating a trajectory-matching loss <strong>through the entire 120-step unrolled simulation</strong>:
       </p>
@@ -420,14 +420,14 @@
 <text x="88.0" y="236.3" font-family="IBM Plex Mono, monospace" font-size="11" fill="#949c9c">start 24.0 (deliberately wrong)</text>
 </svg>
       </div>
-      <div class="diagram-caption">Figure 4: Recovery of the hidden threshold — 60 Adam iterations, final estimate 34.99, trajectory MSE 8.2 × 10⁻¹⁰.</div>
+      <div class="diagram-caption">Figure 4: Recovery of the hidden threshold. 60 Adam iterations, final estimate 34.99, trajectory MSE 8.2 × 10⁻¹⁰.</div>
     </div>
 
     <!-- VALIDATION -->
     <div class="content-block">
       <h2>Validation &amp; Verification</h2>
       <p>
-        Every claim above is backed by a measured check — the notebook runs them as a smoke test before any large computation:
+        Every claim above is backed by a measured check; the notebook runs them as a smoke test before any large computation:
       </p>
 
       <div class="table-scroll">
@@ -445,7 +445,7 @@
           </tr>
           <tr>
             <td>Fortran: independent recomputation of the final state</td>
-            <td>brute-force O(N²) NumPy check — <strong>every agent happy</strong>, segregation index matches to 6 decimals</td>
+            <td>brute-force O(N²) NumPy check: <strong>every agent happy</strong>, segregation index matches to 6 decimals</td>
           </tr>
           <tr>
             <td>PyTorch: τ → 0 limit recovers discrete counts</td>
@@ -478,11 +478,11 @@
         </div>
         <div class="feature-card">
           <h3>Exact Incremental Bookkeeping</h3>
-          <p>After each relocation only agents within R of the departure and arrival points are re-evaluated — a teleport cannot affect anyone else. The unhappy set is maintained exactly with an O(1) inverse-index map; the full run takes ~0.4 s.</p>
+          <p>After each relocation only agents within R of the departure and arrival points are re-evaluated; a teleport cannot affect anyone else. The unhappy set is maintained exactly with an O(1) inverse-index map; the full run takes ~0.4 s.</p>
         </div>
         <div class="feature-card">
           <h3>Gradient Checkpointing</h3>
-          <p>Backprop through T steps naively stores O(T·N²) pairwise activations — prohibitive at N = 2,000. Recomputing activations in the backward pass drops memory to O(N²) total at ~2× forward compute, with gradients verified identical.</p>
+          <p>Backprop through T steps naively stores O(T·N²) pairwise activations, prohibitive at N = 2,000. Recomputing activations in the backward pass drops memory to O(N²) total at ~2× forward compute, with gradients verified identical.</p>
         </div>
         <div class="feature-card">
           <h3>Reproducible &amp; Device-Agnostic</h3>
@@ -499,7 +499,7 @@
 
   <!-- FOOTER -->
   <footer>
-    <p>Joel Coyago — Quito, Ecuador · +593 996389269</p>
+    <p>Joel Coyago · Quito, Ecuador · +593 996389269</p>
     <p>Physicist · Cum Laude · EPN 2025</p>
   </footer>
 
