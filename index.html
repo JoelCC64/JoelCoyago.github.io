@@ -662,6 +662,26 @@
         <div class="project reveal">
           <div class="project-num">06</div>
           <div class="project-body">
+            <h4>Ship Detection &amp; Segmentation · Airbus Challenge</h4>
+            <p>Two networks in cascade over 768 × 768 satellite tiles. A fine-tuned ResNet-50 gates whether a tile contains a vessel at all; a U-Net trained from scratch then delimits each hull pixel by pixel. A combined BCE + Dice loss keeps training alive against a 0.51% foreground, reaching F2 = 0.7726 on 8,512 held-out tiles.</p>
+            <div class="tags">
+              <span class="tag on">PyTorch</span>
+              <span class="tag on">U-Net</span>
+              <span class="tag">ResNet-50</span>
+              <span class="tag">Semantic Segmentation</span>
+              <span class="tag">Dice Loss</span>
+            </div>
+            <div class="project-links">
+              <a class="project-link" href="./projects/airbus-ship-segmentation.html">Case study →</a>
+              <a class="project-link subtle" href="https://github.com/JoelCC64/Airbus_Segmentation" target="_blank" rel="noopener">GitHub ↗</a>
+            </div>
+          </div>
+          <div class="project-year">2026</div>
+        </div>
+
+        <div class="project reveal">
+          <div class="project-num">07</div>
+          <div class="project-body">
             <h4>Distributed Image Classifier Infrastructure</h4>
             <p>Containerised microservices architecture offloading TensorFlow ResNet50 inference asynchronously. A FastAPI gateway is decoupled from inference workers by a Redis broker, credentials and feedback are stored in PostgreSQL under JWT, and scalability is stress-tested with Locust.</p>
             <div class="tags">
@@ -680,7 +700,7 @@
         </div>
 
         <div class="project reveal">
-          <div class="project-num">07</div>
+          <div class="project-num">08</div>
           <div class="project-body">
             <h4>ML Pipelines for Risk Analysis · AnyoneAI</h4>
             <p>End-to-end ETL pipelines in SQL and Pandas for operational-metrics analysis, with fine-tuned ensemble models (XGBoost, LightGBM) improving accuracy in risk analysis and data-driven decision making.</p>

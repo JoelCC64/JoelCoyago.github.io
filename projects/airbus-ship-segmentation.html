@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ship Detection &amp; Segmentation in Satellite Imagery · Joel Coyago</title>
+  <meta name="description" content="Two networks in cascade that take a 768 x 768 satellite tile and return the mask of every hull, pixel by pixel. Airbus Ship Detection Challenge, PyTorch." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+
+    :root {
+      --bg: #f7f8f8;
+      --bg-alt: #eceff0;
+      --ink: #141618;
+      --muted: #565f5f;
+      --faint: #949c9c;
+      --accent: #0e8a8f;
+      --accent-deep: #0b6f73;
+      --line: rgba(20,22,24,0.11);
+      --line-soft: rgba(20,22,24,0.06);
+      --card: #ffffff;
+      --tp: #4eb4a7;
+      --fn: #d3654e;
+      --fp: #dd9a4e;
+      --display: 'Space Grotesk', ui-sans-serif, sans-serif;
+      --sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-weight: 400; line-height: 1.7; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    ::selection { background: rgba(14,138,143,0.16); }
+    a { color: inherit; }
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: rgba(20,22,24,0.18); border-radius: 10px; border: 3px solid var(--bg); }
+    code { font-family: var(--mono); font-size: 0.86em; background: var(--bg-alt); padding: 0.1em 0.4em; border-radius: 3px; color: var(--accent-deep); }
+
+    nav { position: fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding: 1.05rem 2rem; background: rgba(247,248,248,0.84); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line-soft); }
+    .nav-logo { font-family: var(--display); font-size: 1.02rem; font-weight: 600; color: var(--ink); text-decoration: none; letter-spacing: -0.01em; }
+    .nav-back { font-family: var(--mono); color: var(--muted); text-decoration: none; font-size: 0.76rem; letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
+    .nav-back:hover { color: var(--accent-deep); }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 8rem 2rem 4rem; }
+    .header-section { margin-bottom: 3.5rem; }
+    .eyebrow { font-family: var(--mono); font-size: 0.72rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); margin-bottom: 1.3rem; display:flex; align-items:center; gap: 0.7rem; }
+    .eyebrow::before { content:''; width: 20px; height:1px; background: var(--accent); }
+    h1 { font-family: var(--display); font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 500; line-height: 1.03; letter-spacing: -0.03em; margin-bottom: 0.8rem; }
+    .subtitle { font-size: 1.08rem; color: var(--muted); max-width: 42rem; margin-bottom: 2rem; }
+    .button-group { display:flex; gap: 0.8rem; flex-wrap: wrap; }
+    .btn-primary, .btn-outline { display:inline-flex; align-items:center; gap:0.4rem; font-family: var(--mono); font-size:0.8rem; font-weight:500; letter-spacing: 0.04em; padding:0.72rem 1.4rem; border-radius:2px; text-decoration:none; transition: all 0.2s; border:1px solid transparent; }
+    .btn-primary { background: var(--accent); color:#fff; }
+    .btn-primary:hover { background: var(--accent-deep); }
+    .btn-outline { color: var(--ink); border-color: var(--line); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent-deep); }
+
+    .specs-grid { display:grid; grid-template-columns: repeat(4, 1fr); border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin-bottom: 3.5rem; }
+    .spec-item { padding: 1.3rem 1.3rem 1.3rem 0; border-right: 1px solid var(--line-soft); }
+    .spec-item:last-child { border-right:none; }
+    .spec-label { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--faint); margin-bottom: 0.4rem; }
+    .spec-value { font-size: 0.9rem; color: var(--ink); }
+
+    .content-block { margin-bottom: 3.4rem; }
+    .content-block h2 { font-family: var(--display); font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 500; letter-spacing: -0.025em; margin-bottom: 1.2rem; }
+    .content-block h3 { font-family: var(--display); font-size: 1.12rem; font-weight: 500; letter-spacing: -0.01em; margin-bottom: 0.6rem; }
+    .content-block p { color: var(--muted); margin-bottom: 1rem; }
+    .content-block p strong { color: var(--ink); font-weight: 500; }
+
+    .diagram-box { border: 1px solid var(--line); border-radius: 3px; padding: 1.5rem; background: var(--card); margin: 1.4rem 0 0.8rem; }
+    .diagram-box svg { display:block; }
+    .diagram-caption { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.03em; color: var(--faint); text-align: center; }
+    .diagram-caption + p, .diagram-caption + h2, .diagram-caption + h3 { margin-top: 1.8rem; }
+
+    .feature-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap: 1.2rem; }
+    .feature-card { border: 1px solid var(--line); border-radius: 3px; padding: 1.6rem; background: var(--card); }
+    .feature-card h3 { display:flex; align-items:center; justify-content: space-between; gap: 0.6rem; }
+    .feature-card h3 span { font-family: var(--mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-deep); border:1px solid rgba(14,138,143,0.35); background: rgba(14,138,143,0.06); padding: 0.15rem 0.5rem; border-radius: 2px; font-weight: 500; }
+    .feature-card p { color: var(--muted); font-size: 0.92rem; margin-bottom: 0; }
+
+    .stat-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1.4rem 0; }
+    .stat-card { border: 1px solid var(--line); border-radius: 3px; padding: 1.5rem 1.6rem; background: var(--card); }
+    .stat-label { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--faint); margin-bottom: 0.5rem; }
+    .stat-value { font-family: var(--mono); font-size: 1.5rem; font-weight: 500; color: var(--accent-deep); margin-bottom: 0.5rem; }
+    .stat-card p { color: var(--muted); font-size: 0.88rem; margin-bottom: 0; }
+
+    .code-wrap { font-family: var(--mono); font-size: 0.8rem; background: var(--bg-alt); border:1px solid var(--line); border-radius: 3px; padding: 1rem 1.2rem; color: var(--ink); white-space: pre-wrap; margin: 1rem 0; overflow-x:auto; }
+
+    .table-scroll { overflow-x: auto; }
+    .results-table { width:100%; border-collapse: collapse; font-size: 0.85rem; }
+    .results-table th { text-align:left; padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--line); color: var(--faint); font-weight:500; text-transform: uppercase; font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.06em; }
+    .results-table td { padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--line-soft); color: var(--muted); }
+    .results-table td strong { color: var(--ink); }
+
+    /* ─── FIGURES BUILT FROM REAL VALIDATION TILES ─── */
+    .plate { border: 1px solid var(--line); border-radius: 3px; padding: 1.5rem; background: var(--card); margin: 1.4rem 0 0.8rem; }
+    .fig-row { display:grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem; }
+    .fig-tile img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:2px; }
+    .fig-label { font-family: var(--mono); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); margin-top: 0.55rem; text-align:center; }
+
+    .legend { display:flex; gap: 1.4rem; flex-wrap:wrap; justify-content:center; margin-top: 1.2rem; padding-top: 1.1rem; border-top: 1px solid var(--line-soft); }
+    .legend span { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); display:inline-flex; align-items:center; gap: 0.45rem; }
+    .legend i { width:10px; height:10px; border-radius:2px; display:inline-block; }
+
+    .sample { display:grid; grid-template-columns: repeat(3, 1fr) 1.5fr; gap: 1rem; align-items:center; padding: 1.4rem 0; border-top: 1px solid var(--line-soft); }
+    .sample:first-of-type { border-top:none; padding-top: 0.2rem; }
+    .sample img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:2px; }
+    .sample-note .sample-id { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-deep); display:block; margin-bottom: 0.3rem; }
+    .sample-note p { font-size: 0.88rem; color: var(--muted); margin: 0; line-height: 1.6; }
+
+    .single-figure { max-width: 380px; margin: 0 auto; }
+    .single-figure img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:2px; }
+
+    footer { border-top: 1px solid var(--line-soft); padding: 2rem; display:flex; justify-content: space-between; align-items:center; max-width: 900px; margin: 2rem auto 0; flex-wrap:wrap; gap:0.5rem; }
+    footer p { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.03em; color: var(--faint); }
+
+    @media (max-width: 760px) {
+      .specs-grid { grid-template-columns: repeat(2, 1fr); }
+      .feature-grid, .stat-grid { grid-template-columns: 1fr; }
+      .sample { grid-template-columns: repeat(3, 1fr); }
+      .sample-note { grid-column: 1 / -1; }
+      nav { padding: 1rem 1.5rem; }
+      .container { padding: 6.5rem 1.5rem 3rem; }
+      .spec-item { border-right: none; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="../index.html">Joel Coyago</a>
+    <a class="nav-back" href="../index.html">← Back to Portfolio</a>
+  </nav>
+
+  <div class="container">
+    <header class="header-section">
+      <div class="eyebrow">Case Study / Computer Vision</div>
+      <h1>Ship Detection &amp; Segmentation in Satellite Imagery</h1>
+      <p class="subtitle">Two networks in cascade that take a 768 × 768 satellite tile and return the mask of every hull, pixel by pixel. Airbus Ship Detection Challenge, built in PyTorch.</p>
+
+      <div class="button-group">
+        <a href="https://github.com/JoelCC64/Airbus_Segmentation" target="_blank" rel="noopener" class="btn-primary">View GitHub Repository ↗</a>
+        <a href="../index.html#projects" class="btn-outline">All Projects</a>
+      </div>
+    </header>
+
+    <!-- SPECS GRID -->
+    <div class="specs-grid">
+      <div class="spec-item">
+        <div class="spec-label">Timeline</div>
+        <div class="spec-value">2026</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-label">Role</div>
+        <div class="spec-value">Machine Learning Engineer</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-label">Stack</div>
+        <div class="spec-value">PyTorch, torchvision, NumPy</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-label">Official metric</div>
+        <div class="spec-value">F2 = 0.7726 on 8,512 held-out tiles</div>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="content-block">
+      <h2>Project Overview</h2>
+      <p>
+        Global maritime traffic keeps growing, and with it illegal fishing, undeclared transport, spills and accidents on the open sea. Satellites already photograph the entire ocean every day: <strong>361 million km² of it</strong>. The bottleneck was never taking the picture; it is that somebody has to look at it. That is the gap Airbus opened to the public with a dataset of <strong>192,556 satellite tiles</strong>.
+      </p>
+      <p>
+        The task is deliberately harder than detection. It is not enough to answer <em>“there is a ship here”</em>: the deliverable is the <strong>mask of the hull, pixel by pixel</strong>, encoded in the exact format the competition scores. This case study walks through how the problem was framed, why a single network cannot solve it, and how the final cascade performs on tiles it never saw during training.
+      </p>
+
+      <div class="plate">
+        <div class="single-figure">
+          <img src="./assets/airbus/raw-tile.jpg" width="493" height="493" loading="lazy" alt="Raw 768 by 768 satellite tile: a small vessel with its wake crossing open water, occupying a tiny fraction of the frame." />
+          <div class="fig-label">Raw input · 768 × 768 px · one vessel ≈ 20 px across</div>
+        </div>
+      </div>
+      <div class="diagram-caption">Figure 1: A typical tile. The object to be found occupies roughly one pixel in every 194.</div>
+    </div>
+
+    <!-- WHY F2 -->
+    <div class="content-block">
+      <h2>Why F2, and Not Accuracy</h2>
+      <p>
+        The competition does not score accuracy. It scores <strong>F2</strong>, which weights recall four times more heavily than precision:
+      </p>
+      <div class="code-wrap">F2 = 5·TP / (5·TP + 4·FN + FP)</div>
+      <p>
+        The asymmetry encodes the real cost structure of maritime surveillance: a false positive costs a human review, a false negative costs the vessel. Every design decision downstream (the loss function, the decision threshold, even how the metrics are aggregated) follows from that single choice.
+      </p>
+    </div>
+
+    <!-- TWO PROBLEMS -->
+    <div class="content-block">
+      <h2>One Challenge, Two Different Problems</h2>
+      <p>
+        The prompt hides two tasks whose granularity is incompatible. They need different resolutions, different losses and different training regimes, so they were solved separately:
+      </p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>Is there a ship? <span>Global</span></h3>
+          <p><strong>One answer per tile.</strong> Binary classification over the whole frame. 77.9% of the dataset is empty ocean, so this branch decides whether the expensive machinery runs at all. Solved with a fine-tuned ResNet-50.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Where exactly? <span>Local</span></h3>
+          <p><strong>65,536 answers per tile.</strong> Semantic segmentation, one decision per pixel. Needs an architecture that preserves spatial detail instead of collapsing it into a label. Solved with a U-Net trained from scratch.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- RLE DECODING -->
+    <div class="content-block">
+      <h2>The Labels Are Text, Not Images</h2>
+      <p>
+        The dataset does not ship image/mask pairs. It ships a CSV with two columns, <code>ImageId</code> and <code>EncodedPixels</code>, where the second is plain text: the mask compressed as <strong>Run-Length Encoding</strong>, a list of <em>(start, length)</em> pairs over the flattened image. An empty cell means no ship. Nothing can backpropagate through that, so the first component built was the decoder.
+      </p>
+      <p>
+        Three details decide whether the reconstruction is correct, and the third is the interesting one. The pairs index a <strong>flat vector</strong>, not a row-indexed matrix. The indices are <strong>1-based</strong>. And the flattening is in <strong>Fortran order</strong>, column by column: the convention of MATLAB and much of the geospatial software world, not the row-by-row order NumPy uses by default.
+      </p>
+
+      <div class="diagram-box">
+        <svg viewBox="0 0 734 312" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="tip" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#0e8a8f"/>
+            </marker>
+            <marker id="tip-grey" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#949c9c"/>
+            </marker>
+          </defs>
+
+          <!-- left grid, Fortran order -->
+          <text x="172" y="30" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="600" fill="#141618">order = &apos;F&apos; · column-major</text>
+          <text x="172" y="48" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#0b6f73">what Airbus encodes</text>
+          <rect x="70" y="60" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="87.0" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">1</text>
+          <rect x="104" y="60" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="121.0" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">7</text>
+          <rect x="138" y="60" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="155.0" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">13</text>
+          <rect x="172" y="60" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="189.0" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">19</text>
+          <rect x="206" y="60" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="223.0" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">25</text>
+          <rect x="240" y="60" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="257.0" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">31</text>
+          <rect x="70" y="94" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="87.0" y="114.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">2</text>
+          <rect x="104" y="94" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="121.0" y="114.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">8</text>
+          <rect x="138" y="94" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="155.0" y="114.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">14</text>
+          <rect x="172" y="94" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="189.0" y="114.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">20</text>
+          <rect x="206" y="94" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="223.0" y="114.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">26</text>
+          <rect x="240" y="94" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="257.0" y="114.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">32</text>
+          <rect x="70" y="128" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="87.0" y="148.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">3</text>
+          <rect x="104" y="128" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="121.0" y="148.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">9</text>
+          <rect x="138" y="128" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="155.0" y="148.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">15</text>
+          <rect x="172" y="128" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="189.0" y="148.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">21</text>
+          <rect x="206" y="128" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="223.0" y="148.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">27</text>
+          <rect x="240" y="128" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="257.0" y="148.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">33</text>
+          <rect x="70" y="162" width="34" height="34" fill="rgba(14,138,143,0.85)" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="87.0" y="182.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#ffffff">4</text>
+          <rect x="104" y="162" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="121.0" y="182.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">10</text>
+          <rect x="138" y="162" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="155.0" y="182.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">16</text>
+          <rect x="172" y="162" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="189.0" y="182.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">22</text>
+          <rect x="206" y="162" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="223.0" y="182.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">28</text>
+          <rect x="240" y="162" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="257.0" y="182.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">34</text>
+          <rect x="70" y="196" width="34" height="34" fill="rgba(14,138,143,0.85)" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="87.0" y="216.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#ffffff">5</text>
+          <rect x="104" y="196" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="121.0" y="216.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">11</text>
+          <rect x="138" y="196" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="155.0" y="216.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">17</text>
+          <rect x="172" y="196" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="189.0" y="216.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">23</text>
+          <rect x="206" y="196" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="223.0" y="216.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">29</text>
+          <rect x="240" y="196" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="257.0" y="216.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">35</text>
+          <rect x="70" y="230" width="34" height="34" fill="rgba(14,138,143,0.85)" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="87.0" y="250.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#ffffff">6</text>
+          <rect x="104" y="230" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="121.0" y="250.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">12</text>
+          <rect x="138" y="230" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="155.0" y="250.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">18</text>
+          <rect x="172" y="230" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="189.0" y="250.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">24</text>
+          <rect x="206" y="230" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="223.0" y="250.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">30</text>
+          <rect x="240" y="230" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="257.0" y="250.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">36</text>
+
+          <!-- right grid, C order -->
+          <text x="562" y="30" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="600" fill="#141618">order = &apos;C&apos; · row-major</text>
+          <text x="562" y="48" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">what NumPy does by default</text>
+          <rect x="460" y="60" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="477.0" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">1</text>
+          <rect x="494" y="60" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="511.0" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">2</text>
+          <rect x="528" y="60" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="545.0" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">3</text>
+          <rect x="562" y="60" width="34" height="34" fill="rgba(14,138,143,0.85)" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="579.0" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#ffffff">4</text>
+          <rect x="596" y="60" width="34" height="34" fill="rgba(14,138,143,0.85)" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="613.0" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#ffffff">5</text>
+          <rect x="630" y="60" width="34" height="34" fill="rgba(14,138,143,0.85)" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="647.0" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#ffffff">6</text>
+          <rect x="460" y="94" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="477.0" y="114.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">7</text>
+          <rect x="494" y="94" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="511.0" y="114.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">8</text>
+          <rect x="528" y="94" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="545.0" y="114.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">9</text>
+          <rect x="562" y="94" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="579.0" y="114.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">10</text>
+          <rect x="596" y="94" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="613.0" y="114.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">11</text>
+          <rect x="630" y="94" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="647.0" y="114.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">12</text>
+          <rect x="460" y="128" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="477.0" y="148.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">13</text>
+          <rect x="494" y="128" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="511.0" y="148.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">14</text>
+          <rect x="528" y="128" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="545.0" y="148.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">15</text>
+          <rect x="562" y="128" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="579.0" y="148.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">16</text>
+          <rect x="596" y="128" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="613.0" y="148.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">17</text>
+          <rect x="630" y="128" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="647.0" y="148.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">18</text>
+          <rect x="460" y="162" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="477.0" y="182.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">19</text>
+          <rect x="494" y="162" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="511.0" y="182.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">20</text>
+          <rect x="528" y="162" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="545.0" y="182.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">21</text>
+          <rect x="562" y="162" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="579.0" y="182.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">22</text>
+          <rect x="596" y="162" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="613.0" y="182.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">23</text>
+          <rect x="630" y="162" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="647.0" y="182.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">24</text>
+          <rect x="460" y="196" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="477.0" y="216.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">25</text>
+          <rect x="494" y="196" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="511.0" y="216.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">26</text>
+          <rect x="528" y="196" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="545.0" y="216.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">27</text>
+          <rect x="562" y="196" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="579.0" y="216.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">28</text>
+          <rect x="596" y="196" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="613.0" y="216.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">29</text>
+          <rect x="630" y="196" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="647.0" y="216.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">30</text>
+          <rect x="460" y="230" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="477.0" y="250.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">31</text>
+          <rect x="494" y="230" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="511.0" y="250.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">32</text>
+          <rect x="528" y="230" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="545.0" y="250.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">33</text>
+          <rect x="562" y="230" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="579.0" y="250.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">34</text>
+          <rect x="596" y="230" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="613.0" y="250.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">35</text>
+          <rect x="630" y="230" width="34" height="34" fill="#ffffff" stroke="rgba(20,22,24,0.16)" stroke-width="1"/>
+          <text x="647.0" y="250.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">36</text>
+
+          <!-- the run, in the middle -->
+          <text x="367" y="146" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="#141618">"4 3"</text>
+          <text x="367" y="166" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#949c9c">start 4</text>
+          <text x="367" y="179" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#949c9c">length 3</text>
+          <path d="M 330,172 L 288,172" stroke="#0e8a8f" stroke-width="1" marker-end="url(#tip)" fill="none"/>
+          <path d="M 404,172 L 446,172" stroke="#949c9c" stroke-width="1" marker-end="url(#tip-grey)" fill="none"/>
+
+          <text x="172" y="292" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#0b6f73">vertical hull segment</text>
+          <text x="562" y="292" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">transposed · silently wrong</text>
+        </svg>
+      </div>
+      <div class="diagram-caption">Figure 2: The same run, <code>"4 3"</code>, read under both flattening conventions.</div>
+
+      <p>
+        This is the detail worth dwelling on. Read in row-major order the mask comes out <strong>transposed</strong>, and the number of lit pixels is <em>identical</em> in both readings, so no shape assertion, no pixel count, no sanity check on the tensor will ever catch it. The only way to see the error is to look at the mask on top of its image. One argument fixes it:
+      </p>
+      <div class="code-wrap">flat.reshape(shape, order="F")   # column-major, the way Airbus encodes</div>
+      <p>
+        A second consequence falls out of the same format. A tile containing three ships occupies <strong>three rows of the CSV</strong>, one per instance, so the rows are grouped by <code>ImageId</code> and every run is accumulated onto the same flat vector. The resulting mask is therefore <em>semantic</em>, not instance-level: two adjacent hulls merge into one region. That matches the objective (hull versus water), but it means the system delimits ships rather than counting them.
+      </p>
+    </div>
+
+    <!-- IMBALANCE -->
+    <div class="content-block">
+      <h2>The Same Imbalance, at Two Scales</h2>
+      <p>
+        The hardest property of this dataset is not the resolution or the volume. It is that the object of interest is rare, and it is rare twice over: once across tiles, once inside them.
+      </p>
+
+      <div class="diagram-box">
+        <svg viewBox="0 0 760 300" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="pxgrid" width="10" height="10" patternUnits="userSpaceOnUse">
+              <rect width="9" height="9" fill="rgba(20,22,24,0.07)"/>
+            </pattern>
+          </defs>
+
+          <!-- left: image level -->
+          <text x="30" y="28" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="600" fill="#141618">Image level · 192,556 tiles</text>
+
+          <text x="30" y="66" font-family="IBM Plex Mono, monospace" font-size="9" fill="#565f5f">without ship: 150,000 · 77.9%</text>
+          <rect x="30" y="74" width="340" height="26" fill="rgba(20,22,24,0.16)" rx="1"/>
+
+          <text x="30" y="122" font-family="IBM Plex Mono, monospace" font-size="9" fill="#0b6f73">with ship: 42,556 · 22.1%</text>
+          <rect x="30" y="130" width="97" height="26" fill="#0e8a8f" rx="1"/>
+
+          <text x="30" y="192" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">Always answering &quot;no ship&quot; already scores</text>
+          <text x="30" y="207" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">77.9% accuracy, a very comfortable</text>
+          <text x="30" y="222" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">local minimum for the gradient to find.</text>
+
+          <!-- right: pixel level -->
+          <text x="470" y="28" font-family="Space Grotesk, sans-serif" font-size="13" font-weight="600" fill="#141618">Pixel level · one tile</text>
+          <rect x="470" y="50" width="200" height="200" fill="url(#pxgrid)"/>
+          <rect x="560" y="150" width="9" height="9" fill="#0e8a8f"/>
+          <rect x="570" y="150" width="9" height="9" fill="#0e8a8f"/>
+          <text x="470" y="274" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">≈337 hull pixels of 65,536 · 0.51%</text>
+          <text x="470" y="289" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">&quot;everything is ocean&quot; scores 99.5% per pixel</text>
+        </svg>
+      </div>
+      <div class="diagram-caption">Figure 3: Class imbalance across tiles (left) and within a single tile (right).</div>
+
+      <p>
+        The two scales cannot be fixed the same way, because at pixel level there is nothing to throw away:
+      </p>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Fix at image level</div>
+          <div class="stat-value">50 / 50</div>
+          <p>Undersample the majority class so the classifier sees as much empty ocean as it does ships. The trivial baseline drops from 77.9% to 50% and accuracy becomes an interpretable signal again. Cost: 107,444 discarded tiles.</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Fix at pixel level</div>
+          <div class="stat-value">BCE + Dice</div>
+          <p>Change the loss instead of the data. Dice measures <em>overlap</em>, and the background enters neither its numerator nor its denominator, so predicting all zeros yields intersection 0, Dice 0 and loss 1: the maximum penalty.</p>
+        </div>
+      </div>
+
+      <div class="code-wrap">L = 0.5 · BCE(logits, target) + 0.5 · (1 − Dice)</div>
+      <p>
+        Both halves earn their place. Cross-entropy provides a stable gradient early on, when predictions are essentially random and the Dice term is noisy; Dice then drives the shape of the hull once there is something to overlap with.
+      </p>
+    </div>
+
+    <!-- CASCADE -->
+    <div class="content-block">
+      <h2>Two Networks in Cascade</h2>
+      <p>
+        The final system is a gate followed by a segmenter. A ResNet-50 fine-tuned from ImageNet decides whether the tile contains anything at all; only tiles that pass reach the U-Net.
+      </p>
+
+      <div class="diagram-box">
+        <svg viewBox="0 0 800 285" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="tip2" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#0e8a8f"/>
+            </marker>
+          </defs>
+
+          <!-- input -->
+          <rect x="20" y="105" width="105" height="70" rx="3" fill="#eef1f1" stroke="#0e8a8f" stroke-width="1"/>
+          <text x="72" y="133" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="11" font-weight="600" fill="#141618">Satellite tile</text>
+          <text x="72" y="150" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#565f5f">768 × 768 × 3</text>
+          <path d="M 125,140 L 160,140" stroke="#0e8a8f" stroke-width="1.2" marker-end="url(#tip2)" fill="none"/>
+
+          <!-- resnet -->
+          <rect x="163" y="95" width="132" height="90" rx="3" fill="#eef1f1" stroke="#6b7280" stroke-width="1"/>
+          <text x="229" y="121" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="11" font-weight="600" fill="#141618">ResNet-50</text>
+          <text x="229" y="138" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#6b7280">224² · fine-tuned</text>
+          <text x="229" y="152" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#6b7280">fc → 1 logit</text>
+          <text x="229" y="169" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#565f5f">23.5 M params</text>
+          <path d="M 295,140 L 313,140" stroke="#0e8a8f" stroke-width="1.2" marker-end="url(#tip2)" fill="none"/>
+
+          <!-- gate -->
+          <polygon points="373,108 418,140 373,172 328,140" fill="#ffffff" stroke="#0e8a8f" stroke-width="1"/>
+          <text x="373" y="137" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#141618">σ &gt; 0.5 ?</text>
+          <text x="373" y="152" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#949c9c">gate</text>
+
+          <!-- no branch -->
+          <path d="M 373,108 L 373,62 L 470,62" stroke="#949c9c" stroke-width="1.2" marker-end="url(#tip2)" fill="none"/>
+          <text x="386" y="82" font-family="IBM Plex Mono, monospace" font-size="8" fill="#949c9c">no</text>
+          <rect x="473" y="36" width="160" height="52" rx="3" fill="#f7f8f8" stroke="rgba(20,22,24,0.2)" stroke-width="1"/>
+          <text x="553" y="58" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="11" font-weight="600" fill="#141618">Empty mask</text>
+          <text x="553" y="74" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#565f5f">early exit · ≈78% of tiles</text>
+
+          <!-- yes branch -->
+          <path d="M 373,172 L 373,218 L 425,218" stroke="#0e8a8f" stroke-width="1.2" marker-end="url(#tip2)" fill="none"/>
+          <text x="386" y="200" font-family="IBM Plex Mono, monospace" font-size="8" fill="#0b6f73">yes</text>
+          <rect x="428" y="188" width="132" height="62" rx="3" fill="#eef1f1" stroke="#6b7280" stroke-width="1"/>
+          <text x="494" y="210" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="11" font-weight="600" fill="#141618">U-Net</text>
+          <text x="494" y="225" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#6b7280">256² · from scratch</text>
+          <text x="494" y="240" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#565f5f">31.0 M params</text>
+          <path d="M 560,219 L 588,219" stroke="#0e8a8f" stroke-width="1.2" marker-end="url(#tip2)" fill="none"/>
+
+          <!-- output -->
+          <rect x="591" y="188" width="180" height="62" rx="3" fill="#eef1f1" stroke="#0b6f73" stroke-width="1"/>
+          <text x="681" y="210" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="11" font-weight="600" fill="#141618">Binary mask</text>
+          <text x="681" y="225" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#0b6f73">sigmoid → threshold 0.5</text>
+          <text x="681" y="240" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#565f5f">upscaled to 768 × 768</text>
+        </svg>
+      </div>
+      <div class="diagram-caption">Figure 4: Inference cascade. The gate is not an optimisation. It is a requirement.</div>
+
+      <p>
+        <strong>The gate is mandatory, not a speed trick.</strong> The two networks were trained on different populations: the classifier saw a balanced mix of empty ocean and ships, but the U-Net was trained <em>exclusively</em> on the 42,556 tiles that contain a ship. It has never once been asked to return an empty mask. Put it in front of open water on its own and it hallucinates hulls. The classifier is what makes its narrow training set safe.
+      </p>
+      <p>
+        The efficiency is a side effect: roughly 78% of tiles leave through the cheap branch without ever touching the segmenter's 31 million parameters. One further detail matters for scoring: the U-Net works at 256 × 256 but the official metric is evaluated at full resolution, so the <strong>logits</strong> are upscaled to 768 × 768 and thresholded afterwards. Interpolating an already-binarised mask would leave stair-stepping along the hull contour.
+      </p>
+    </div>
+
+    <!-- U-NET -->
+    <div class="content-block">
+      <h2>Inside the Segmenter</h2>
+      <p>
+        Segmentation has to answer <em>where</em>, and that is precisely the information an encoder destroys: every max-pool throws away three pixels in four. The U-Net resolves the contradiction with two symmetric branches and, above all, with <strong>skip connections</strong>: before each reduction the activation map is saved and reinjected into the upward branch at matching resolution.
+      </p>
+
+      <div class="diagram-box">
+        <svg viewBox="0 0 820 448" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="tip3" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#0e8a8f"/>
+            </marker>
+            <marker id="tip3g" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#949c9c"/>
+            </marker>
+          </defs>
+
+          <text x="36" y="20" font-family="IBM Plex Mono, monospace" font-size="8.5" letter-spacing="0.8" fill="#949c9c">ENCODER · LOSES RESOLUTION, GAINS SEMANTICS</text>
+          <text x="800" y="20" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="8.5" letter-spacing="0.8" fill="#949c9c">DECODER · RECOVERS RESOLUTION</text>
+
+          <!-- skip connections -->
+          <path d="M 154,58 L 570,58" stroke="#0e8a8f" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#tip3)" fill="none"/>
+          <path d="M 214,136 L 510,136" stroke="#0e8a8f" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#tip3)" fill="none"/>
+          <path d="M 274,214 L 450,214" stroke="#0e8a8f" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#tip3)" fill="none"/>
+          <path d="M 334,292 L 390,292" stroke="#0e8a8f" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#tip3)" fill="none"/>
+          <text x="365" y="50" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#0b6f73">concat · skip connections</text>
+          <text x="365" y="128" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#0b6f73">concat</text>
+          <text x="365" y="206" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#0b6f73">concat</text>
+          <text x="365" y="284" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="#0b6f73">concat</text>
+
+          <!-- encoder · descending left arm -->
+          <rect x="36" y="38" width="118" height="40" rx="2" fill="#eef1f1" stroke="#6b7280" stroke-width="1"/>
+          <text x="95" y="57" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="500" fill="#141618">3 → 64</text>
+          <text x="95" y="70" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#6b7280">256 × 256</text>
+
+          <path d="M 100,80 L 128,114" stroke="#949c9c" stroke-width="1" marker-end="url(#tip3g)" fill="none"/>
+          <text x="136" y="101" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#949c9c">maxpool /2</text>
+
+          <rect x="96" y="116" width="118" height="40" rx="2" fill="#eef1f1" stroke="#6b7280" stroke-width="1"/>
+          <text x="155" y="135" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="500" fill="#141618">64 → 128</text>
+          <text x="155" y="148" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#6b7280">128 × 128</text>
+
+          <path d="M 160,158 L 188,192" stroke="#949c9c" stroke-width="1" marker-end="url(#tip3g)" fill="none"/>
+          <text x="196" y="179" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#949c9c">maxpool /2</text>
+
+          <rect x="156" y="194" width="118" height="40" rx="2" fill="#eef1f1" stroke="#6b7280" stroke-width="1"/>
+          <text x="215" y="213" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="500" fill="#141618">128 → 256</text>
+          <text x="215" y="226" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#6b7280">64 × 64</text>
+
+          <path d="M 220,236 L 248,270" stroke="#949c9c" stroke-width="1" marker-end="url(#tip3g)" fill="none"/>
+          <text x="256" y="257" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#949c9c">maxpool /2</text>
+
+          <rect x="216" y="272" width="118" height="40" rx="2" fill="#eef1f1" stroke="#6b7280" stroke-width="1"/>
+          <text x="275" y="291" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="500" fill="#141618">256 → 512</text>
+          <text x="275" y="304" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#6b7280">32 × 32</text>
+
+          <path d="M 282,314 L 316,348" stroke="#949c9c" stroke-width="1" marker-end="url(#tip3g)" fill="none"/>
+          <text x="324" y="336" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#949c9c">maxpool /2</text>
+
+          <!-- bottleneck · bottom of the U -->
+          <rect x="240" y="352" width="250" height="44" rx="2" fill="rgba(14,138,143,0.12)" stroke="#0b6f73" stroke-width="1"/>
+          <text x="365" y="372" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="500" fill="#141618">bottleneck · 512 → 1024</text>
+          <text x="365" y="386" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#0b6f73">16 × 16 · 14.2 M parameters · peak semantics</text>
+
+          <!-- decoder · ascending right arm -->
+          <path d="M 452,352 L 452,316" stroke="#0e8a8f" stroke-width="1" marker-end="url(#tip3)" fill="none"/>
+          <text x="460" y="338" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#0b6f73">convT ×2</text>
+
+          <rect x="390" y="272" width="118" height="40" rx="2" fill="rgba(14,138,143,0.06)" stroke="#0e8a8f" stroke-width="1"/>
+          <text x="449" y="291" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="500" fill="#141618">1024 → 512</text>
+          <text x="449" y="304" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#6b7280">32 × 32</text>
+
+          <path d="M 500,270 L 528,238" stroke="#0e8a8f" stroke-width="1" marker-end="url(#tip3)" fill="none"/>
+          <text x="536" y="258" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#0b6f73">convT ×2</text>
+
+          <rect x="450" y="194" width="118" height="40" rx="2" fill="rgba(14,138,143,0.06)" stroke="#0e8a8f" stroke-width="1"/>
+          <text x="509" y="213" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="500" fill="#141618">512 → 256</text>
+          <text x="509" y="226" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#6b7280">64 × 64</text>
+
+          <path d="M 560,192 L 588,160" stroke="#0e8a8f" stroke-width="1" marker-end="url(#tip3)" fill="none"/>
+          <text x="596" y="180" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#0b6f73">convT ×2</text>
+
+          <rect x="510" y="116" width="118" height="40" rx="2" fill="rgba(14,138,143,0.06)" stroke="#0e8a8f" stroke-width="1"/>
+          <text x="569" y="135" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="500" fill="#141618">256 → 128</text>
+          <text x="569" y="148" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#6b7280">128 × 128</text>
+
+          <path d="M 620,114 L 648,82" stroke="#0e8a8f" stroke-width="1" marker-end="url(#tip3)" fill="none"/>
+          <text x="656" y="102" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#0b6f73">convT ×2</text>
+
+          <rect x="570" y="38" width="118" height="40" rx="2" fill="rgba(14,138,143,0.06)" stroke="#0e8a8f" stroke-width="1"/>
+          <text x="629" y="57" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" font-weight="500" fill="#141618">128 → 64</text>
+          <text x="629" y="70" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#6b7280">256 × 256</text>
+
+          <!-- output head -->
+          <path d="M 688,58 L 712,58" stroke="#0b6f73" stroke-width="1.2" marker-end="url(#tip3)" fill="none"/>
+          <text x="718" y="54" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="500" fill="#0b6f73">conv 1×1</text>
+          <text x="718" y="68" font-family="IBM Plex Mono, monospace" font-size="7.5" fill="#6b7280">64 → 1 logit/px</text>
+
+          <text x="36" y="432" font-family="IBM Plex Mono, monospace" font-size="8" fill="#949c9c">Every max-pool destroys the &quot;where&quot;. The skip connections hand it back to the decoder intact.</text>
+        </svg>
+      </div>
+      <div class="diagram-caption">Figure 5: Four levels down from 256 to 16 px per side, four symmetric levels back up. Every skip is reinjected by concatenation.</div>
+
+      <p>
+        The decoder therefore receives both halves of the answer: the <em>what</em> from the bottleneck and the <em>where</em> from the encoder's fine edges. The final layer is deliberately a <strong>bare 1 × 1 convolution</strong> (no batch norm, no activation) so that the output is a raw logit free to run across the whole real line. An activation there would clamp negative values to zero and, since <code>sigmoid(0) = 0.5</code>, no pixel could ever fall below 50% probability.
+      </p>
+    </div>
+
+    <!-- TRAINING -->
+    <div class="content-block">
+      <h2>Training Regimes</h2>
+      <p>
+        Each network was trained under the regime its own task demands: different resolutions, different losses, different initialisations:
+      </p>
+      <div class="table-scroll">
+        <table class="results-table">
+          <thead>
+            <tr><th></th><th>ResNet-50 · gate</th><th>U-Net · segmenter</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Training data</td><td>68,090 tiles (balanced 50/50)</td><td>34,044 tiles (ships only)</td></tr>
+            <tr><td>Held-out set</td><td>17,022 tiles</td><td>8,512 tiles</td></tr>
+            <tr><td>Resolution</td><td>224 × 224</td><td>256 × 256</td></tr>
+            <tr><td>Batch size</td><td>32</td><td>16</td></tr>
+            <tr><td>Initial weights</td><td>ImageNet · full fine-tuning</td><td>random · from scratch</td></tr>
+            <tr><td>Loss</td><td><code>BCEWithLogitsLoss</code></td><td>0.5·BCE + 0.5·(1 − Dice)</td></tr>
+            <tr><td>Optimiser</td><td>Adam · lr 1e-3</td><td>Adam · lr 1e-4</td></tr>
+            <tr><td>Epochs</td><td>2</td><td>3</td></tr>
+            <tr><td>Result</td><td>training accuracy 0.9188 → 0.9429</td><td><strong>loss 0.4176 → 0.1530 → 0.1279</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        The backbone was <strong>not frozen</strong>. The usual transfer-learning shortcut is to keep ImageNet as a fixed feature extractor, but ImageNet teaches textures of ground-level terrestrial photography; here the imagery is nadir, nearly monochrome, and the object covers half a percent of the frame. The pretrained weights are worth keeping as an <em>initialisation</em>, not as a frozen encoder.
+      </p>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="content-block">
+      <h2>Results</h2>
+      <p>
+        Metrics are accumulated pixel by pixel across the whole held-out set and the ratios computed at the end, rather than averaging per-image scores. Averaging would give a 600-pixel cargo ship the same weight as a 20-pixel launch, and a single hard tile would sink the mean. All figures below are measured on the <strong>8,512 validation tiles the U-Net never saw</strong>.
+      </p>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">F2 · official metric</div>
+          <div class="stat-value">0.7726</div>
+          <p>Recall weighted four times more than precision, exactly as the competition scores it.</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Dice · F1</div>
+          <div class="stat-value">0.7912</div>
+          <p>Overlap between predicted and true masks, with the background excluded from the ratio.</p>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="results-table">
+          <thead>
+            <tr><th>Metric</th><th>Value</th><th>Reading</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>F2 (official)</strong></td><td><strong>0.7726</strong></td><td>recall-weighted score</td></tr>
+            <tr><td>Dice (F1)</td><td>0.7912</td><td>mask overlap</td></tr>
+            <tr><td>IoU (Jaccard)</td><td>0.6545</td><td>intersection over union</td></tr>
+            <tr><td>Precision</td><td>0.8243</td><td>of 100 pixels called ship, 82 are</td></tr>
+            <tr><td>Recall</td><td>0.7607</td><td>of 100 real ship pixels, 76 are found</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="diagram-box">
+        <svg viewBox="0 0 760 162" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+          <text x="40" y="26" font-family="IBM Plex Mono, monospace" font-size="9" fill="#949c9c">DISTRIBUTION OF TP + FN + FP · 3,334,920 PIXELS</text>
+
+          <rect x="40" y="40" width="445" height="44" fill="#4eb4a7"/>
+          <rect x="485" y="40" width="140" height="44" fill="#d3654e"/>
+          <rect x="625" y="40" width="95" height="44" fill="#dd9a4e"/>
+
+          <text x="262" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="500" fill="#ffffff">65.45%</text>
+          <text x="555" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="500" fill="#ffffff">20.60%</text>
+          <text x="672" y="68" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="500" fill="#ffffff">13.95%</text>
+
+          <text x="262" y="103" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#141618">TP · correct</text>
+          <text x="262" y="116" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#949c9c">2,182,838 px</text>
+          <text x="555" y="103" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#141618">FN · missed</text>
+          <text x="555" y="116" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#949c9c">686,838 px</text>
+          <text x="672" y="103" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#141618">FP · false alarm</text>
+          <text x="672" y="116" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#949c9c">465,244 px</text>
+
+          <text x="40" y="148" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="#949c9c">the true-positive share of this bar is, by definition, exactly the IoU · background (TN) excluded</text>
+        </svg>
+      </div>
+      <div class="diagram-caption">Figure 6: Where the pixel budget goes. True negatives are excluded: they are 99.5% of the image and free to get right.</div>
+
+      <p>
+        With precision (0.8243) above recall (0.7607) the network is <strong>conservative</strong>: it would rather leave a pixel unmarked than risk marking it wrongly. Since F2 rewards recall four times over, that gap is a known lever: lowering the decision threshold below 0.5 trades precision for recall in the direction the metric prefers, without retraining anything.
+      </p>
+    </div>
+
+    <!-- QUALITATIVE -->
+    <div class="content-block">
+      <h2>What the Model Actually Outputs</h2>
+      <p>
+        A representative validation tile, from raw input through to a pixel-level error map:
+      </p>
+
+      <div class="plate">
+        <div class="fig-row">
+          <div class="fig-tile">
+            <img src="./assets/airbus/m1-input.jpg" width="253" height="253" loading="lazy" alt="Satellite tile showing a cargo vessel crossing open water with a visible wake." />
+            <div class="fig-label">Input tile</div>
+          </div>
+          <div class="fig-tile">
+            <img src="./assets/airbus/m1-truth.jpg" width="253" height="253" loading="lazy" alt="Ground-truth binary mask: a white elongated hull shape on a black background." />
+            <div class="fig-label">Ground truth</div>
+          </div>
+          <div class="fig-tile">
+            <img src="./assets/airbus/m1-pred.jpg" width="253" height="253" loading="lazy" alt="Predicted binary mask, closely matching the ground-truth hull shape." />
+            <div class="fig-label">Prediction</div>
+          </div>
+          <div class="fig-tile">
+            <img src="./assets/airbus/m1-error.jpg" width="253" height="253" loading="lazy" alt="Error map: the hull is mostly teal for correct pixels, with a thin coral and amber fringe along its contour." />
+            <div class="fig-label">Error map</div>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i style="background:#4eb4a7"></i> TP · correct</span>
+          <span><i style="background:#d3654e"></i> FN · missed</span>
+          <span><i style="background:#dd9a4e"></i> FP · false alarm</span>
+        </div>
+      </div>
+      <div class="diagram-caption">Figure 7: The hull axis is recovered correctly; the error is a thin fringe along the contour.</div>
+    </div>
+
+    <!-- FAILURE MODES -->
+    <div class="content-block">
+      <h2>How It Fails</h2>
+      <p>
+        The errors are not random, and that is the most useful thing the evaluation reveals. They concentrate on the <strong>contour</strong> of the hull and on the <strong>wake</strong>, never on distant background. Three validation tiles that stress the model in different ways:
+      </p>
+
+      <div class="plate">
+        <div class="sample">
+          <img src="./assets/airbus/m2-input.jpg" width="253" height="253" loading="lazy" alt="Satellite tile containing coastline and terrain relief alongside open water, with a small vessel near the shore." />
+          <img src="./assets/airbus/m2-zoom.jpg" width="253" height="253" loading="lazy" alt="Close-up of the same vessel with the predicted mask overlaid in green." />
+          <img src="./assets/airbus/m2-error.jpg" width="253" height="253" loading="lazy" alt="Error map showing a solid teal hull with a thin amber band beneath it." />
+          <div class="sample-note">
+            <span class="sample-id">Coast &amp; relief in frame</span>
+            <p>Hard edges from terrain are the obvious distractor, and the network produces no false positives there. It learned “ship”, not “thing that contrasts with water”.</p>
+          </div>
+        </div>
+
+        <div class="sample">
+          <img src="./assets/airbus/m3-input.jpg" width="253" height="253" loading="lazy" alt="Satellite tile with a very small vessel and a long bright wake on dark water." />
+          <img src="./assets/airbus/m3-zoom.jpg" width="253" height="253" loading="lazy" alt="Close-up of the tiny vessel, with only part of the hull covered by the green predicted mask." />
+          <img src="./assets/airbus/m3-error.jpg" width="253" height="253" loading="lazy" alt="Error map with a small fragmented hull and an isolated amber bar along the wake." />
+          <div class="sample-note">
+            <span class="sample-id">Limit case · ≈20 px</span>
+            <p>The characteristic failure mode. It still finds the vessel, but fragments the mask and flags part of the wake as hull: bright, elongated and directly attached to the ship.</p>
+          </div>
+        </div>
+
+        <div class="sample">
+          <img src="./assets/airbus/m4-input.jpg" width="253" height="253" loading="lazy" alt="Satellite tile over ochre-coloured sediment-laden water with a vessel crossing it." />
+          <img src="./assets/airbus/m4-zoom.jpg" width="253" height="253" loading="lazy" alt="Close-up of the vessel with the predicted mask overlaid in green, covering the full hull." />
+          <img src="./assets/airbus/m4-error.jpg" width="253" height="253" loading="lazy" alt="Error map showing a solid teal hull with slight coral erosion at the bow and stern." />
+          <div class="sample-note">
+            <span class="sample-id">Ochre water</span>
+            <p>A background nothing like the open blue of the other tiles, and performance holds. The colour of the water was not memorised; the error is mild contour erosion at bow and stern.</p>
+          </div>
+        </div>
+      </div>
+      <div class="diagram-caption">Figure 8: Validation tiles chosen to stress distractors, object size and background colour.</div>
+    </div>
+
+    <!-- ENGINEERING -->
+    <div class="content-block">
+      <h2>From Notebook to Package</h2>
+      <p>
+        The work was developed in a Kaggle notebook and then restructured into an installable Python package, so that the result is something that can be re-run rather than re-read:
+      </p>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>Configuration, not constants</h3>
+          <p>Every hyperparameter lives in a typed YAML schema. Launching a variant means copying a file and passing <code>--config</code>; a misspelled key raises immediately with the list of valid ones instead of being silently ignored.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Reproducible splits</h3>
+          <p>The validation set is rebuilt, not stored: a fixed seed through the split function returns exactly the same 8,512 tiles, so metrics computed months apart remain comparable.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Resumable training</h3>
+          <p>Weights and checkpoints are separate artefacts. The checkpoint carries the Adam moments as well, since restarting the optimiser with already-trained weights can destabilise what was learned.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Tested logic</h3>
+          <p>67 integration and validation tests over the decoding, the datasets, the network shapes, the loss and the end-to-end cascade, including the silent failures that run without raising and simply return the wrong answer.</p>
+        </div>
+      </div>
+      <p style="margin-top:1.4rem;">
+        The repository ships the package, the CLI entry points for training, evaluation and inference, and a results notebook that loads the saved weights and reproduces every number on this page.
+      </p>
+    </div>
+
+    <div class="button-group" style="justify-content: center;">
+      <a href="https://github.com/JoelCC64/Airbus_Segmentation" target="_blank" rel="noopener" class="btn-primary">View GitHub Repository ↗</a>
+      <a href="../index.html" class="btn-outline">← Back to Main Portfolio</a>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Joel Coyago · Quito, Ecuador · +593 996389269</p>
+    <p>Physicist · Cum Laude · EPN 2025</p>
+  </footer>
+
+</body>
+</html>
